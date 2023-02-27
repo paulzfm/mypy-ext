@@ -16,6 +16,7 @@ from mypy.types import (
     ParamSpecType,
     PartialType,
     ProperType,
+    RefinementType,
     TupleType,
     Type,
     TypeAliasType,
@@ -78,6 +79,10 @@ class EraseTypeVisitor(TypeVisitor[ProperType]):
 
     def visit_instance(self, t: Instance) -> ProperType:
         return Instance(t.type, [AnyType(TypeOfAny.special_form)] * len(t.args), t.line)
+
+    def visit_refinement_type(self, t: RefinementType) -> ProperType:
+        # TODO: erase to base type?
+        return t
 
     def visit_type_var(self, t: TypeVarType) -> ProperType:
         return AnyType(TypeOfAny.special_form)

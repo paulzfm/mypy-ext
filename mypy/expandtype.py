@@ -21,6 +21,7 @@ from mypy.types import (
     ParamSpecType,
     PartialType,
     ProperType,
+    RefinementType,
     TupleType,
     Type,
     TypeAliasType,
@@ -220,6 +221,9 @@ class ExpandTypeVisitor(TypeVisitor[Type]):
             return t.copy_modified(args=args)
         else:
             return args
+
+    def visit_refinement_type(self, t: RefinementType) -> Type:
+        return t
 
     def visit_type_var(self, t: TypeVarType) -> Type:
         # Normally upper bounds can't contain other type variables, the only exception is

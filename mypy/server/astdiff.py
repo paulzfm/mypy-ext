@@ -86,6 +86,7 @@ from mypy.types import (
     Parameters,
     ParamSpecType,
     PartialType,
+    RefinementType,
     TupleType,
     Type,
     TypeAliasType,
@@ -372,6 +373,9 @@ class SnapshotTypeVisitor(TypeVisitor[SnapshotItem]):
             snapshot_types(typ.args),
             ("None",) if typ.last_known_value is None else snapshot_type(typ.last_known_value),
         )
+
+    def visit_refinement_type(self, typ: RefinementType) -> SnapshotItem:
+        raise NotImplementedError("snapshot for RefinementType")
 
     def visit_type_var(self, typ: TypeVarType) -> SnapshotItem:
         return (

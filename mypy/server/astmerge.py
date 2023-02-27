@@ -95,6 +95,7 @@ from mypy.types import (
     PartialType,
     PlaceholderType,
     RawExpressionType,
+    RefinementType,
     SyntheticTypeVisitor,
     TupleType,
     Type,
@@ -419,6 +420,9 @@ class TypeReplaceVisitor(SyntheticTypeVisitor[None]):
             arg.accept(self)
         if typ.last_known_value:
             typ.last_known_value.accept(self)
+
+    def visit_refinement_type(self, typ: RefinementType) -> None:
+        typ.base.accept(self)
 
     def visit_type_alias_type(self, typ: TypeAliasType) -> None:
         assert typ.alias is not None

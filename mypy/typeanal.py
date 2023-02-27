@@ -63,6 +63,7 @@ from mypy.types import (
     PartialType,
     PlaceholderType,
     RawExpressionType,
+    RefinementType,
     RequiredType,
     SyntheticTypeVisitor,
     TrivialSyntheticTypeTranslator,
@@ -898,6 +899,9 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
         return AnyType(TypeOfAny.from_error)
 
     def visit_instance(self, t: Instance) -> Type:
+        return t
+
+    def visit_refinement_type(self, t: RefinementType) -> Type:
         return t
 
     def visit_type_alias_type(self, t: TypeAliasType) -> Type:

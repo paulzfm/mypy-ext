@@ -25,6 +25,7 @@ from mypy.types import (
     ParamSpecType,
     PartialType,
     ProperType,
+    RefinementType,
     TupleType,
     Type,
     TypeAliasType,
@@ -541,6 +542,9 @@ class ConstraintBuilderVisitor(TypeVisitor[List[Constraint]]):
         return []
 
     def visit_literal_type(self, template: LiteralType) -> list[Constraint]:
+        return []
+
+    def visit_refinement_type(self, template: RefinementType) -> list[Constraint]:
         return []
 
     # Errors

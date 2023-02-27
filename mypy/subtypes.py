@@ -45,6 +45,7 @@ from mypy.types import (
     ParamSpecType,
     PartialType,
     ProperType,
+    RefinementType,
     TupleType,
     Type,
     TypeAliasType,
@@ -629,6 +630,9 @@ class SubtypeVisitor(TypeVisitor[bool]):
         else:
             return False
 
+    def visit_refinement_type(self, left: RefinementType) -> bool:
+        return left.is_subtype_of(self.right)
+
     def visit_type_var(self, left: TypeVarType) -> bool:
         right = self.right
         if isinstance(right, TypeVarType) and left.id == right.id:
@@ -805,6 +809,8 @@ class SubtypeVisitor(TypeVisitor[bool]):
     def visit_literal_type(self, left: LiteralType) -> bool:
         if isinstance(self.right, LiteralType):
             return left == self.right
+        elif isinstance(self.right, RefinementType):
+            return self.right.contains_literal_value(left.value)
         else:
             return self._is_subtype(left.fallback, self.right)
 

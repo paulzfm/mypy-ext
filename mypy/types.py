@@ -72,7 +72,6 @@ JsonDict: _TypeAlias = Dict[str, Any]
 # Literal[...].
 LiteralValue: _TypeAlias = Union[int, str, bool, float]
 
-
 # If we only import type_visitor in the middle of the file, mypy
 # breaks, and if we do it at the top, it breaks at runtime because of
 # import cycle issues, so we do it at the top while typechecking and
@@ -210,6 +209,7 @@ class Type(mypy.nodes.Context):
     """Abstract base class for all types."""
 
     __slots__ = ("_can_be_true", "_can_be_false")
+
     # 'can_be_true' and 'can_be_false' mean whether the value of the
     # expression can be true or false in a boolean context. They are useful
     # when inferring the type of logic expressions like `x and y`.
@@ -505,7 +505,6 @@ class TypeVarId:
 
 
 class TypeVarLikeType(ProperType):
-
     __slots__ = ("name", "fullname", "id", "upper_bound")
 
     name: str  # Name (may be qualified)
@@ -1446,6 +1445,44 @@ class Instance(ProperType):
         return [
             name for name, sym in self.type.names.items() if isinstance(sym.node, mypy.nodes.Var)
         ]
+
+
+class RefinementType(ProperType):
+    """Abstract base class for refinement types."""
+
+    __slots__ = ("base",)
+
+    base: Instance
+
+    def __init__(self, base: Instance, line: int = -1, column: int = -1) -> None:
+        super().__init__(line, column)
+        self.base = base
+
+    def accept(self, visitor: TypeVisitor[T]) -> T:
+        return visitor.visit_refinement_type(self)
+
+    @abstractmethod
+    def type_str(self) -> str:
+        pass
+
+    @abstractmethod
+    def shallow_copy(self) -> RefinementType:
+        pass
+
+    @abstractmethod
+    def is_subtype_of(self, other: Type) -> bool:
+        pass
+
+    @abstractmethod
+    def contains_literal_value(self, value: LiteralValue) -> bool:
+        pass
+
+    def serialize(self) -> JsonDict | str:
+        raise NotImplementedError(f"Cannot serialize {self.__class__.__name__} instance")
+
+    @classmethod
+    def deserialize(cls, data: JsonDict) -> Type:
+        raise NotImplementedError(f"Cannot deserialize {cls.__name__} instance")
 
 
 class FunctionLike(ProperType):
@@ -3002,6 +3039,9 @@ class TypeStrVisitor(SyntheticTypeVisitor[str]):
         if self.id_mapper:
             s += f"<{self.id_mapper.id(t.type)}>"
         return s
+
+    def visit_refinement_type(self, t: RefinementType) -> str:
+        return t.type_str()
 
     def visit_type_var(self, t: TypeVarType) -> str:
         if t.name is None:

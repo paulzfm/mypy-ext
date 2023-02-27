@@ -35,6 +35,7 @@ from mypy.types import (
     PartialType,
     PlaceholderType,
     RawExpressionType,
+    RefinementType,
     TupleType,
     Type,
     TypeAliasType,
@@ -104,6 +105,10 @@ class TypeVisitor(Generic[T]):
 
     @abstractmethod
     def visit_instance(self, t: Instance) -> T:
+        pass
+
+    @abstractmethod
+    def visit_refinement_type(self, t: RefinementType) -> T:
         pass
 
     @abstractmethod
@@ -215,6 +220,9 @@ class TypeTranslator(TypeVisitor[Type]):
             column=t.column,
             last_known_value=last_known_value,
         )
+
+    def visit_refinement_type(self, t: RefinementType) -> Type:
+        return t
 
     def visit_type_var(self, t: TypeVarType) -> Type:
         return t
@@ -366,6 +374,9 @@ class TypeQuery(SyntheticTypeVisitor[T]):
     def visit_instance(self, t: Instance) -> T:
         return self.query_types(t.args)
 
+    def visit_refinement_type(self, t: RefinementType) -> T:
+        return self.strategy([])
+
     def visit_callable_type(self, t: CallableType) -> T:
         # FIX generics
         return self.query_types(t.arg_types + [t.ret_type])
@@ -499,6 +510,9 @@ class BoolTypeQuery(SyntheticTypeVisitor[bool]):
 
     def visit_instance(self, t: Instance) -> bool:
         return self.query_types(t.args)
+
+    def visit_refinement_type(self, t: RefinementType) -> bool:
+        return self.default
 
     def visit_callable_type(self, t: CallableType) -> bool:
         # FIX generics

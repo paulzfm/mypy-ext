@@ -15,6 +15,7 @@ from mypy.types import (
     ParamSpecType,
     PartialType,
     ProperType,
+    RefinementType,
     TupleType,
     TypeAliasType,
     TypedDictType,
@@ -67,6 +68,9 @@ class TypeShallowCopier(TypeVisitor[ProperType]):
         dup = Instance(t.type, t.args, last_known_value=t.last_known_value)
         dup.invalid = t.invalid
         return self.copy_common(t, dup)
+
+    def visit_refinement_type(self, t: RefinementType) -> ProperType:
+        return t.shallow_copy()
 
     def visit_type_var(self, t: TypeVarType) -> ProperType:
         dup = TypeVarType(

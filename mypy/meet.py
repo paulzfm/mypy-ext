@@ -29,6 +29,7 @@ from mypy.types import (
     ParamSpecType,
     PartialType,
     ProperType,
+    RefinementType,
     TupleType,
     Type,
     TypeAliasType,
@@ -747,6 +748,9 @@ class TypeMeetVisitor(TypeVisitor[ProperType]):
         elif isinstance(self.s, TypedDictType):
             return meet_types(t, self.s)
         return self.default(self.s)
+
+    def visit_refinement_type(self, t: RefinementType) -> ProperType:
+        raise NotImplementedError("meet operator for RefinementType")
 
     def visit_callable_type(self, t: CallableType) -> ProperType:
         if isinstance(self.s, CallableType) and join.is_similar_callables(t, self.s):

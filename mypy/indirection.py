@@ -90,6 +90,9 @@ class TypeIndirectionVisitor(TypeVisitor[Set[str]]):
                 out.update(split_module_names(t.type.metaclass_type.type.module_name))
         return out
 
+    def visit_refinement_type(self, t: types.RefinementType) -> set[str]:
+        return self._visit(t.base)
+
     def visit_callable_type(self, t: types.CallableType) -> set[str]:
         out = self._visit(t.arg_types) | self._visit(t.ret_type)
         if t.definition is not None:

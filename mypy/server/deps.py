@@ -157,6 +157,7 @@ from mypy.types import (
     ParamSpecType,
     PartialType,
     ProperType,
+    RefinementType,
     TupleType,
     Type,
     TypeAliasType,
@@ -969,6 +970,9 @@ class TypeTriggersVisitor(TypeVisitor[List[str]]):
             # Module as type effectively depends on all module attributes, use wildcard.
             triggers.append(make_wildcard_trigger(typ.extra_attrs.mod_name))
         return triggers
+
+    def visit_refinement_type(self, typ: RefinementType) -> list[str]:
+        return self.get_type_triggers(typ.base)
 
     def visit_type_alias_type(self, typ: TypeAliasType) -> list[str]:
         if typ in self.seen_aliases:

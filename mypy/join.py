@@ -31,6 +31,7 @@ from mypy.types import (
     PartialType,
     PlaceholderType,
     ProperType,
+    RefinementType,
     TupleType,
     Type,
     TypeAliasType,
@@ -361,6 +362,9 @@ class TypeJoinVisitor(TypeVisitor[ProperType]):
             return join_types(t, self.s)
         else:
             return self.default(self.s)
+
+    def visit_refinement_type(self, t: RefinementType) -> ProperType:
+        raise NotImplementedError("join operator for RefinementType")
 
     def visit_callable_type(self, t: CallableType) -> ProperType:
         if isinstance(self.s, CallableType) and is_similar_callables(t, self.s):

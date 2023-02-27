@@ -20,6 +20,7 @@ from mypy.types import (
     PartialType,
     PlaceholderType,
     RawExpressionType,
+    RefinementType,
     SyntheticTypeVisitor,
     TupleType,
     Type,
@@ -79,6 +80,9 @@ class TypeTraverserVisitor(SyntheticTypeVisitor[None]):
 
     def visit_instance(self, t: Instance) -> None:
         self.traverse_types(t.args)
+
+    def visit_refinement_type(self, t: RefinementType) -> None:
+        t.base.accept(self)
 
     def visit_callable_type(self, t: CallableType) -> None:
         # FIX generics

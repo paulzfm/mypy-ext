@@ -30,6 +30,7 @@ from mypy.types import (
     Overloaded,
     Parameters,
     ParamSpecType,
+    RefinementType,
     TupleType,
     TypeAliasType,
     TypedDictType,
@@ -218,6 +219,9 @@ class TypeFixer(TypeVisitor[None]):
             a.accept(self)
         if inst.last_known_value is not None:
             inst.last_known_value.accept(self)
+
+    def visit_refinement_type(self, t: RefinementType) -> None:
+        t.base.accept(self)
 
     def visit_type_alias_type(self, t: TypeAliasType) -> None:
         type_ref = t.type_ref
