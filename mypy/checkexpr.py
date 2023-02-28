@@ -159,7 +159,7 @@ from mypy.types import (
     is_named_instance,
     is_optional,
     is_self_type_like,
-    remove_optional,
+    remove_optional, RefinementType,
 )
 from mypy.typestate import type_state
 from mypy.typevars import fill_typevars
@@ -603,6 +603,8 @@ class ExpressionChecker(ExpressionVisitor[Type]):
         type_name = None
         if isinstance(object_type, Instance):
             type_name = object_type.type.fullname
+        elif isinstance(object_type, RefinementType):
+            type_name = object_type.base.type.fullname
         elif isinstance(object_type, (TypedDictType, LiteralType)):
             info = object_type.fallback.type.get_containing_type_info(method_name)
             type_name = info.fullname if info is not None else None

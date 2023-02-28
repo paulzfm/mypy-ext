@@ -3,11 +3,16 @@ from typing import Literal
 from mypy_ext.finite_type import Fin
 
 
+def int_inc(x: int) -> int:
+    return x + 1
+
+
 def fin_cast() -> None:
     x: Fin[10] = 9
     x1: int = x
     y: Literal[8] = 8
     y1: Fin[9] = y
+    int_inc(y1)
 
 
 def fin_subtype(x: Fin[9]) -> Fin[10]:

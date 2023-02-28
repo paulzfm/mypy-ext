@@ -77,8 +77,10 @@ class FinitePlugin(Plugin):
         return None
 
     def get_method_hook(self, fullname: str) -> Callable[[MethodContext], Type] | None:
-        if fullname in ("builtins.int.__add__", "__add__ of int"):
-            # TODO: why such a weird name?
+        if fullname.endswith("of int"):  # DEBUG
+            raise NotImplementedError(f"Weird name: {fullname}")
+
+        if fullname == "builtins.int.__add__":
             return check_add
 
         return None
