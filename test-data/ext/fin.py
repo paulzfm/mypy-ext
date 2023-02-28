@@ -33,3 +33,8 @@ def fin_call() -> None:
     y = fin_subtype(x)
     fin_add(1, y)
     # fin_add(2, -1)  # type error
+
+
+def fin_as_index(xs: list[int]) -> int:
+    three = fin_inc(2)
+    return xs[three]

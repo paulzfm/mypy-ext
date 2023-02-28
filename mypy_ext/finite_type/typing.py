@@ -4,7 +4,7 @@ from typing import Sequence
 
 from mypy.types import Instance, JsonDict, LiteralValue, RefinementType, Type
 from mypy_ext.finite_type import Fin
-from mypy_ext.utils import fullname_of
+from mypy_ext.utils import fullname_of, type_is
 
 
 class FiniteType(RefinementType):
@@ -27,6 +27,9 @@ class FiniteType(RefinementType):
     def __le__(self, other: Type) -> bool:
         if isinstance(other, FiniteType):
             return self.bound <= other.bound
+        if type_is(other, "typing_extensions.SupportsIndex"):
+            return True
+
         return False
 
     def __contains__(self, value: LiteralValue) -> bool:
