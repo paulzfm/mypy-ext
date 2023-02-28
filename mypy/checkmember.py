@@ -59,6 +59,7 @@ from mypy.types import (
     ParamSpecType,
     PartialType,
     ProperType,
+    RefinementType,
     TupleType,
     Type,
     TypedDictType,
@@ -68,7 +69,7 @@ from mypy.types import (
     TypeVarTupleType,
     TypeVarType,
     UnionType,
-    get_proper_type, RefinementType,
+    get_proper_type,
 )
 from mypy.typetraverser import TypeTraverserVisitor
 

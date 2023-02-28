@@ -1,9 +1,16 @@
 from __future__ import annotations
 
-from mypy.types import RefinementType, JsonDict, Type, LiteralValue, Instance
+from typing import Sequence
+
+from mypy.types import Instance, JsonDict, LiteralValue, RefinementType, Type
+from mypy_ext.finite_type import Fin
+from mypy_ext.utils import fullname_of
 
 
 class FiniteType(RefinementType):
+    fullname = fullname_of(Fin)
+    name = Fin.__name__
+
     bound: int
 
     def __init__(self, base: Instance, bound: int, line: int = -1, column: int = -1) -> None:
@@ -11,8 +18,8 @@ class FiniteType(RefinementType):
         super().__init__(base, line, column)
         self.bound = bound
 
-    def type_repr(self) -> str:
-        return f'Fin[{self.bound}]'
+    def args_repr(self) -> Sequence[str]:
+        return [repr(self.bound)]
 
     def shallow_copy(self) -> RefinementType:
         return FiniteType(self.base, self.bound, self.line, self.column)
@@ -20,6 +27,7 @@ class FiniteType(RefinementType):
     def __le__(self, other: Type) -> bool:
         if isinstance(other, FiniteType):
             return self.bound <= other.bound
+        return False
 
     def __contains__(self, value: LiteralValue) -> bool:
         if isinstance(value, int):
@@ -27,11 +35,7 @@ class FiniteType(RefinementType):
         return False
 
     def serialize(self) -> JsonDict | str:
-        return {
-            ".class": "FiniteType",
-            "base": self.base.serialize(),
-            "bound": self.bound,
-        }
+        return {".class": "FiniteType", "base": self.base.serialize(), "bound": self.bound}
 
     @classmethod
     def deserialize(cls, data: JsonDict) -> Type:

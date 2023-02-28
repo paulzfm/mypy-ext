@@ -75,6 +75,7 @@ from mypy.types import (
     ParamSpecType,
     PartialType,
     ProperType,
+    RefinementType,
     TupleType,
     Type,
     TypeAliasType,
@@ -2347,6 +2348,8 @@ def format_type_inner(
         else:
             # There are type arguments. Convert the arguments to strings.
             return f"{base_str}[{format_list(itype.args)}]"
+    elif isinstance(typ, RefinementType):
+        return typ.long_repr() if verbosity >= 2 else typ.short_repr()
     elif isinstance(typ, UnpackType):
         return f"Unpack[{format(typ.type)}]"
     elif isinstance(typ, TypeVarType):

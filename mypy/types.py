@@ -1450,9 +1450,11 @@ class Instance(ProperType):
 class RefinementType(ProperType):
     """Abstract base class for refinement types."""
 
-    __slots__ = ("base",)
+    __slots__ = ("base", "fullname", "name")
 
     base: Instance
+    fullname: str
+    name: str
 
     def __init__(self, base: Instance, line: int = -1, column: int = -1) -> None:
         super().__init__(line, column)
@@ -1462,8 +1464,14 @@ class RefinementType(ProperType):
         return visitor.visit_refinement_type(self)
 
     @abstractmethod
-    def type_repr(self) -> str:
+    def args_repr(self) -> Sequence[str]:
         pass
+
+    def short_repr(self) -> str:
+        return f"{self.name}[{', '.join(self.args_repr())}]"
+
+    def long_repr(self) -> str:
+        return f"{self.fullname}[{', '.join(self.args_repr())}]"
 
     @abstractmethod
     def shallow_copy(self) -> RefinementType:
@@ -3046,7 +3054,7 @@ class TypeStrVisitor(SyntheticTypeVisitor[str]):
         return s
 
     def visit_refinement_type(self, t: RefinementType) -> str:
-        return t.type_repr()
+        return t.short_repr()
 
     def visit_type_var(self, t: TypeVarType) -> str:
         if t.name is None:

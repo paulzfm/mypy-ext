@@ -3,20 +3,27 @@ from __future__ import annotations
 from typing import Callable, Tuple
 
 from mypy.options import Options
-from mypy.plugin import Plugin, AnalyzeTypeContext, MethodContext, ClassDefContext
-from mypy.types import Type, UnboundType, RawExpressionType, ProperType, LiteralType, Instance
+from mypy.plugin import AnalyzeTypeContext, MethodContext, Plugin
+from mypy.types import Instance, LiteralType, ProperType, RawExpressionType, Type, UnboundType
 from mypy_ext.finite_type import Fin
 from mypy_ext.finite_type.typing import FiniteType
 from mypy_ext.utils import fullname_of
 
 
 def analyze_type(ctx: AnalyzeTypeContext) -> Type:
-    assert isinstance(ctx.type, UnboundType)
-    arg = ctx.type.args[0]
-
+    assert isinstance(
+        ctx.type, UnboundType
+    ), f"{ctx.type} of type {ctx.type.__class__.__name__} is not UnboundType"
     int_type = ctx.api.named_type("builtins.int", [])
+
+    if len(ctx.type.args) != 1:
+        ctx.api.fail("Fin[...] expects one type argument", ctx.type)
+        if len(ctx.type.args) == 0:
+            return int_type
+
+    arg = ctx.type.args[0]
     if not isinstance(arg, RawExpressionType) or not isinstance(arg.literal_value, int):
-        ctx.api.fail("Fin[...] expects an integer literal", arg)
+        ctx.api.fail("Argument of Fin[...] must be an integer literal", arg)
         return int_type
 
     bound = arg.literal_value
