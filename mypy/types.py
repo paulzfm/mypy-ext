@@ -1462,19 +1462,24 @@ class RefinementType(ProperType):
         return visitor.visit_refinement_type(self)
 
     @abstractmethod
-    def type_str(self) -> str:
+    def type_repr(self) -> str:
         pass
 
     @abstractmethod
     def shallow_copy(self) -> RefinementType:
         pass
 
-    @abstractmethod
     def is_subtype_of(self, other: Type) -> bool:
+        if other == self.base:
+            return True
+        return self <= other
+
+    @abstractmethod
+    def __le__(self, other: Type) -> bool:
         pass
 
     @abstractmethod
-    def contains_literal_value(self, value: LiteralValue) -> bool:
+    def __contains__(self, value: LiteralValue) -> bool:
         pass
 
     def serialize(self) -> JsonDict | str:
@@ -3041,7 +3046,7 @@ class TypeStrVisitor(SyntheticTypeVisitor[str]):
         return s
 
     def visit_refinement_type(self, t: RefinementType) -> str:
-        return t.type_str()
+        return t.type_repr()
 
     def visit_type_var(self, t: TypeVarType) -> str:
         if t.name is None:

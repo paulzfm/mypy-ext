@@ -68,7 +68,7 @@ from mypy.types import (
     TypeVarTupleType,
     TypeVarType,
     UnionType,
-    get_proper_type,
+    get_proper_type, RefinementType,
 )
 from mypy.typetraverser import TypeTraverserVisitor
 
@@ -218,6 +218,9 @@ def _analyze_member_access(
     typ = get_proper_type(typ)
     if isinstance(typ, Instance):
         return analyze_instance_member_access(name, typ, mx, override_info)
+    # Refinement types automatically inherit the members of its base type.
+    elif isinstance(typ, RefinementType):
+        return analyze_instance_member_access(name, typ.base, mx, override_info)
     elif isinstance(typ, AnyType):
         # The base object has dynamic type.
         return AnyType(TypeOfAny.from_another_any, source_any=typ)

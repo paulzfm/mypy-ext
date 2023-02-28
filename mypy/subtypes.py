@@ -619,7 +619,9 @@ class SubtypeVisitor(TypeVisitor[bool]):
                         return True
                     if isinstance(item, Instance):
                         return is_named_instance(item, "builtins.object")
-        if isinstance(right, LiteralType) and left.last_known_value is not None:
+        # NOTE: when left = `Literal[_]?`, it is possible that its `last_known_value`
+        # is a subtype of a literal or a refinement type
+        if isinstance(right, (LiteralType, RefinementType)) and left.last_known_value is not None:
             return self._is_subtype(left.last_known_value, right)
         if isinstance(right, CallableType):
             # Special case: Instance can be a subtype of Callable.
@@ -810,7 +812,7 @@ class SubtypeVisitor(TypeVisitor[bool]):
         if isinstance(self.right, LiteralType):
             return left == self.right
         elif isinstance(self.right, RefinementType):
-            return self.right.contains_literal_value(left.value)
+            return left.value in self.right
         else:
             return self._is_subtype(left.fallback, self.right)
 
