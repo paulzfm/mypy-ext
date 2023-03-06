@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import sys
 from abc import abstractmethod
 from typing import (
@@ -832,6 +833,7 @@ class UnboundType(ProperType):
         "empty_tuple_index",
         "original_str_expr",
         "original_str_fallback",
+        "original_args",
     )
 
     def __init__(
@@ -844,10 +846,13 @@ class UnboundType(ProperType):
         empty_tuple_index: bool = False,
         original_str_expr: str | None = None,
         original_str_fallback: str | None = None,
+        original_args: Sequence[ast.expr] | None = None,
     ) -> None:
         super().__init__(line, column)
         if not args:
             args = []
+        if not original_args:
+            original_args = []
         assert name is not None
         self.name = name
         self.args = tuple(args)
@@ -870,6 +875,8 @@ class UnboundType(ProperType):
         # so we don't have to try and recompute it later
         self.original_str_expr = original_str_expr
         self.original_str_fallback = original_str_fallback
+        # Store the original expression for the convenience of refinement type checking
+        self.original_args = original_args
 
     def copy_modified(self, args: Bogus[Sequence[Type] | None] = _dummy) -> UnboundType:
         if args is _dummy:
@@ -883,6 +890,7 @@ class UnboundType(ProperType):
             empty_tuple_index=self.empty_tuple_index,
             original_str_expr=self.original_str_expr,
             original_str_fallback=self.original_str_fallback,
+            original_args=self.original_args,
         )
 
     def accept(self, visitor: TypeVisitor[T]) -> T:
@@ -2396,9 +2404,9 @@ class TypedDictType(ProperType):
         return (
             frozenset(self.items.keys()) == frozenset(other.items.keys())
             and all(
-                left_item_type == right_item_type
-                for (_, left_item_type, right_item_type) in self.zip(other)
-            )
+            left_item_type == right_item_type
+            for (_, left_item_type, right_item_type) in self.zip(other)
+        )
             and self.fallback == other.fallback
             and self.required_keys == other.required_keys
         )
