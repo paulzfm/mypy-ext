@@ -1873,16 +1873,23 @@ class TypeVarLikeQuery(TypeQuery[TypeVarLikeList]):
             # Don't query the second argument to Annotated for TypeVars
             return self.query_types([t.args[0]])
         elif node and isinstance(node.node, TypeInfo) and self._inherits_refinable(node.node):
-            # No type variables in refinement type arguments
-            # NOTE: skipping the search help to avoid unexpected name errors
-            return []
+            # refinement types
+            n = self._refinable_type_args_count(node.node)
+            return self.query_types(t.args[:n])
         else:
             return super().visit_unbound_type(t)
 
     def _inherits_refinable(self, info: TypeInfo) -> bool:
         for base in info.bases:
-            if base.type.fullname == "mypy.typing_extension.Refinable":
+            if base.type.fullname.startswith("mypy.typing_extension.Refinable"):
                 return True
+        return False
+
+    def _refinable_type_args_count(self, info: TypeInfo) -> int:
+        for base in info.bases:
+            if base.type.fullname.startswith("mypy.typing_extension.Refinable"):
+                suffix = base.type.fullname[31:]
+                return int(suffix) if suffix != '' else 0
         return False
 
     def visit_callable_type(self, t: CallableType) -> TypeVarLikeList:
