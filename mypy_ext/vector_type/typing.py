@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, cast
 
 from mypy.subtypes import is_subtype
 from mypy.types import Type, RefinementType, Instance, JsonDict, LiteralValue, deserialize_type
@@ -14,7 +14,7 @@ class VectorType(RefinementType):
     size: int
 
     def __init__(self, base: Instance, elem_type: Type, size: int, line: int = -1, column: int = -1) -> None:
-        assert base.type.fullname == "builtins.list"
+        # assert base.type.fullname == "builtins.list"
         super().__init__(base, line, column)
         self.elem_type = elem_type
         self.size = size
@@ -38,14 +38,11 @@ class VectorType(RefinementType):
     def __contains__(self, value: LiteralValue) -> bool:
         return False
 
-    def serialize(self) -> JsonDict | str:
-        return {".class": "VectorType", "base": self.base.serialize(),
-                "elem_type": self.elem_type.serialize(), "size": self.size}
+    def serialize_args(self) -> JsonDict | str:
+        return {"elem_type": self.elem_type.serialize(), "size": self.size}
 
     @classmethod
-    def deserialize(cls, data: JsonDict) -> Type:
-        assert data[".class"] == "VectorType"
-        base = Instance.deserialize(data["base"])
-        elem_type = deserialize_type(data["elem_type"])
-        size: int = data["size"]
+    def deserialize_args(cls, base: Instance, args: JsonDict | str) -> Type:
+        elem_type = deserialize_type(args["elem_type"])
+        size = cast(int, args["size"])
         return VectorType(base, elem_type, size)

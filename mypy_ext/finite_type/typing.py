@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Sequence, cast
 
 from mypy.types import Instance, JsonDict, LiteralValue, RefinementType, Type
 from mypy_ext.finite_type import Fin
@@ -14,7 +14,7 @@ class FiniteType(RefinementType):
     bound: int
 
     def __init__(self, base: Instance, bound: int, line: int = -1, column: int = -1) -> None:
-        assert base.type.fullname == "builtins.int"
+        # assert base.type.fullname == "builtins.int"
         super().__init__(base, line, column)
         self.bound = bound
 
@@ -37,12 +37,10 @@ class FiniteType(RefinementType):
             return 0 <= value < self.bound
         return False
 
-    def serialize(self) -> JsonDict | str:
-        return {".class": "FiniteType", "base": self.base.serialize(), "bound": self.bound}
+    def serialize_args(self) -> JsonDict | str:
+        return {"bound": self.bound}
 
     @classmethod
-    def deserialize(cls, data: JsonDict) -> Type:
-        assert data[".class"] == "FiniteType"
-        base = Instance.deserialize(data["base"])
-        bound: int = data["bound"]
+    def deserialize_args(cls, base: Instance, args: JsonDict | str) -> RefinementType:
+        bound = cast(int, args["bound"])
         return FiniteType(base, bound)

@@ -16,7 +16,7 @@ class RegularType(RefinementType):
 
     def __init__(self, base: Instance, regex: str, line: int = -1, column: int = -1) -> None:
         """Assume the input regex is valid."""
-        assert base.type.fullname == "builtins.str"
+        # assert base.type.fullname == "builtins.str"
         super().__init__(base, line, column)
         self.regex = regex
 
@@ -39,12 +39,10 @@ class RegularType(RefinementType):
             return nfa.accepts_input(value)
         return False
 
-    def serialize(self) -> JsonDict | str:
-        return {".class": "RegularType", "base": self.base.serialize(), "regex": self.regex}
+    def serialize_args(self) -> JsonDict | str:
+        return self.regex
 
     @classmethod
-    def deserialize(cls, data: JsonDict) -> Type:
-        assert data[".class"] == "RegularType"
-        base = Instance.deserialize(data["base"])
-        regex: str = data["regex"]
-        return RegularType(base, regex)
+    def deserialize_args(cls, base: Instance, args: JsonDict | str) -> Type:
+        assert isinstance(args, str)
+        return RegularType(base, args)

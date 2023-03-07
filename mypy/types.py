@@ -19,6 +19,7 @@ from typing import (
     Union,
     cast,
 )
+
 from typing_extensions import Final, TypeAlias as _TypeAlias, TypeGuard, overload
 
 import mypy.nodes
@@ -1498,12 +1499,29 @@ class RefinementType(ProperType):
     def __contains__(self, value: LiteralValue) -> bool:
         pass
 
+    @abstractmethod
+    def serialize_args(self) -> JsonDict | str:
+        pass
+
     def serialize(self) -> JsonDict | str:
-        raise NotImplementedError(f"Cannot serialize {self.__class__.__name__} instance")
+        return {".class": "RefinementType", "base": self.base.serialize(),
+                "class_name": self.__class__.__name__,  # TODO: use full qualified name
+                "args": self.serialize_args()}
+
+    @classmethod
+    def deserialize_args(cls, base: Instance, args: JsonDict | str) -> RefinementType:
+        raise NotImplementedError("deserialize_args")
 
     @classmethod
     def deserialize(cls, data: JsonDict) -> Type:
-        raise NotImplementedError(f"Cannot deserialize {cls.__name__} instance")
+        assert data[".class"] == "RefinementType"
+        base = Instance.deserialize(data["base"])
+        class_name = cast(str, data["class_name"])
+        for c in cls.__subclasses__():
+            if c.__name__ == class_name:
+                return c.deserialize_args(base, data["args"])
+
+        raise NotImplementedError(f"Cannot deserialize refinement type of class {class_name}")
 
 
 class FunctionLike(ProperType):
