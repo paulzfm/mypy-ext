@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import ast
+import ast as ast3
 import sys
 from abc import abstractmethod
 from typing import (
@@ -846,7 +846,7 @@ class UnboundType(ProperType):
         empty_tuple_index: bool = False,
         original_str_expr: str | None = None,
         original_str_fallback: str | None = None,
-        original_args: Sequence[ast.expr] | None = None,
+        original_args: Sequence[ast3.expr] | None = None,
     ) -> None:
         super().__init__(line, column)
         if not args:

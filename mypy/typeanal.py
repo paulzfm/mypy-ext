@@ -1244,7 +1244,8 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
                         code=codes.VALID_TYPE,
                     )
                     self.note(
-                        "See https://mypy.readthedocs.io/en/stable/kinds_of_types.html#callable-types-and-lambdas",  # noqa: E501
+                        "See https://mypy.readthedocs.io/en/stable/kinds_of_types.html#callable-types-and-lambdas",
+                        # noqa: E501
                         t,
                     )
                     return AnyType(TypeOfAny.from_error)
@@ -1871,8 +1872,18 @@ class TypeVarLikeQuery(TypeQuery[TypeVarLikeList]):
         elif node and node.fullname in ANNOTATED_TYPE_NAMES and t.args:
             # Don't query the second argument to Annotated for TypeVars
             return self.query_types([t.args[0]])
+        elif node and isinstance(node.node, TypeInfo) and self._inherits_refinable(node.node):
+            # No type variables in refinement type arguments
+            # NOTE: skipping the search help to avoid unexpected name errors
+            return []
         else:
             return super().visit_unbound_type(t)
+
+    def _inherits_refinable(self, info: TypeInfo) -> bool:
+        for base in info.bases:
+            if base.type.fullname == "mypy.typing_extension.Refinable":
+                return True
+        return False
 
     def visit_callable_type(self, t: CallableType) -> TypeVarLikeList:
         if self.include_callables:

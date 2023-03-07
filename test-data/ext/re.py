@@ -24,7 +24,6 @@ def re_concat(s1: Re["a+"], s2: Re["b+"]) -> Re["a+b+"]:
 
 
 def re_str_concat(s1: Re["a|b"], s2: str) -> Re["(a|b).*"]:
-    # TODO: avoid reporting name error on "a" and "b"
     return s1 + s2
 
 

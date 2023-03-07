@@ -28,7 +28,6 @@ class RegularType(RefinementType):
 
     def __le__(self, other: Type) -> bool:
         if isinstance(other, RegularType):
-            print(f"{self.regex} <:? {other.regex}")
             return re.issubset(self.regex, other.regex)
         if type_is(other, "typing.Sized"):
             return True

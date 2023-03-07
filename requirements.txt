@@ -1,0 +1,6 @@
+mypy~=1.2.0+dev.800e8ffdf17de9fc641fefff46389a940f147eef
+pytest~=7.2.1
+lxml~=4.9.2
+filelock~=3.9.0
+tomli~=2.0.1
+setuptools~=67.4.0
