@@ -1505,7 +1505,7 @@ class RefinementType(ProperType):
 
     def serialize(self) -> JsonDict | str:
         return {".class": "RefinementType", "base": self.base.serialize(),
-                "class_name": self.__class__.__name__,  # TODO: use full qualified name
+                "class_path": '.'.join([self.__class__.__module__, self.__class__.__name__]),
                 "args": self.serialize_args()}
 
     @classmethod
@@ -1516,12 +1516,12 @@ class RefinementType(ProperType):
     def deserialize(cls, data: JsonDict) -> Type:
         assert data[".class"] == "RefinementType"
         base = Instance.deserialize(data["base"])
-        class_name = cast(str, data["class_name"])
+        class_path = cast(str, data["class_path"])
         for c in cls.__subclasses__():
-            if c.__name__ == class_name:
+            if '.'.join([c.__module__, c.__name__]) == class_path:
                 return c.deserialize_args(base, data["args"])
 
-        raise NotImplementedError(f"Cannot deserialize refinement type of class {class_name}")
+        raise NotImplementedError(f"Cannot deserialize refinement type of class {class_path}")
 
 
 class FunctionLike(ProperType):

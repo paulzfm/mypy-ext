@@ -6,7 +6,7 @@ from automata.regex import regex as re
 
 from mypy.options import Options
 from mypy.plugin import AnalyzeTypeContext, Plugin, MethodContext
-from mypy.types import Type, UnboundType, RawExpressionType, ProperType, LiteralType, Instance
+from mypy.types import Type, UnboundType, ProperType, LiteralType, Instance
 from mypy_ext.regular_type import Re
 from mypy_ext.regular_type.re_ops import re_starts_with
 from mypy_ext.regular_type.typing import RegularType
