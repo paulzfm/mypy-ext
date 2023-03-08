@@ -1874,8 +1874,7 @@ class TypeVarLikeQuery(TypeQuery[TypeVarLikeList]):
             return self.query_types([t.args[0]])
         elif node and isinstance(node.node, TypeInfo) and self._inherits_refinable(node.node):
             # refinement types
-            n = self._refinable_type_args_count(node.node)
-            return self.query_types(t.args[:n])
+            return self.query_types(t.args[: self._refinable_type_args_count(node.node)])
         else:
             return super().visit_unbound_type(t)
 
@@ -1889,8 +1888,8 @@ class TypeVarLikeQuery(TypeQuery[TypeVarLikeList]):
         for base in info.bases:
             if base.type.fullname.startswith("mypy.typing_extension.Refinable"):
                 suffix = base.type.fullname[31:]
-                return int(suffix) if suffix != '' else 0
-        return False
+                return int(suffix) if suffix != "" else 0
+        return 0
 
     def visit_callable_type(self, t: CallableType) -> TypeVarLikeList:
         if self.include_callables:

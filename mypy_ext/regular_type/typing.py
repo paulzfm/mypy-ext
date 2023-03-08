@@ -1,9 +1,9 @@
 from typing import Sequence
 
-from automata.regex import regex as re
 from automata.fa.nfa import NFA
+from automata.regex import regex as re
 
-from mypy.types import RefinementType, JsonDict, Type, LiteralValue, Instance
+from mypy.types import Instance, JsonDict, LiteralValue, RefinementType, Type
 from mypy_ext.regular_type import Re
 from mypy_ext.utils import fullname_of, type_is
 

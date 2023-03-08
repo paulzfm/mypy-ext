@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Type as PyType, TypeVar, Generic
+from typing import Type as PyType
 
-from mypy.types import Type, Instance
+from mypy.types import Instance, Type
 
 
 def fullname_of(x: PyType) -> str:

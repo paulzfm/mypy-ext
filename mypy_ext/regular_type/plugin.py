@@ -5,8 +5,8 @@ from automata.base.exceptions import InvalidRegexError
 from automata.regex import regex as re
 
 from mypy.options import Options
-from mypy.plugin import AnalyzeTypeContext, Plugin, MethodContext
-from mypy.types import Type, UnboundType, ProperType, LiteralType, Instance
+from mypy.plugin import AnalyzeTypeContext, MethodContext, Plugin
+from mypy.types import Instance, LiteralType, ProperType, Type, UnboundType
 from mypy_ext.regular_type import Re
 from mypy_ext.regular_type.re_ops import re_starts_with
 from mypy_ext.regular_type.typing import RegularType
@@ -54,9 +54,9 @@ def try_extract(t: ProperType) -> Tuple[int, str]:
     if isinstance(t, RegularType):
         return IS_RE, t.regex
     if isinstance(t, Instance) and t.type.fullname == "builtins.str":
-        return IS_STR, '.*'  # the regex that matches any string
+        return IS_STR, ".*"  # the regex that matches any string
 
-    return IS_ERROR, ''
+    return IS_ERROR, ""
 
 
 def infer_add(ctx: MethodContext) -> Type:

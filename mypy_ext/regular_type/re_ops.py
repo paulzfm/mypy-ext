@@ -1,4 +1,4 @@
-from typing import cast, Set
+from typing import Set, cast
 
 from automata.base.exceptions import RejectionException
 from automata.fa.dfa import DFA
@@ -7,7 +7,7 @@ from automata.fa.nfa import NFA
 
 def extract_middle(msg: str, prefix: str, suffix: str) -> str:
     assert msg.startswith(prefix) and msg.endswith(suffix)
-    return msg[len(prefix):-len(suffix)]
+    return msg[len(prefix) : -len(suffix)]
 
 
 def DFA_reachable(dfa: DFA, state: int, target: Set[int]) -> bool:
@@ -34,7 +34,7 @@ def re_starts_with(regex: str, prefix: str) -> bool:
         dfa.read_input(prefix)
     except RejectionException as ex:
         msg = cast(str, ex.args[0])
-        state = int(extract_middle(msg, 'the DFA stopped on a non-final state (', ')'))
+        state = int(extract_middle(msg, "the DFA stopped on a non-final state (", ")"))
         return DFA_reachable(dfa, state, dfa.final_states)
     else:
         return True

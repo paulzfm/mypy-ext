@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import ast as ast3
 import sys
 from abc import abstractmethod
 from typing import (
@@ -19,7 +18,6 @@ from typing import (
     Union,
     cast,
 )
-
 from typing_extensions import Final, TypeAlias as _TypeAlias, TypeGuard, overload
 
 import mypy.nodes
@@ -837,6 +835,30 @@ class UnboundType(ProperType):
         "original_args",
     )
 
+    try:
+        # Check if we can use the stdlib ast module instead of typed_ast.
+        if sys.version_info >= (3, 8):
+            import ast as ast3
+        else:
+            from typed_ast import ast3
+    except ImportError:
+        try:
+            from typed_ast import ast35  # type: ignore[attr-defined]
+        except ImportError:
+            print(
+                "The typed_ast package is not installed.\n"
+                "You can install it with `python3 -m pip install typed-ast`.",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                "You need a more recent version of the typed_ast package.\n"
+                "You can update to the latest version with "
+                "`python3 -m pip install -U typed-ast`.",
+                file=sys.stderr,
+            )
+        sys.exit(1)
+
     def __init__(
         self,
         name: str | None,
@@ -1504,9 +1526,12 @@ class RefinementType(ProperType):
         pass
 
     def serialize(self) -> JsonDict | str:
-        return {".class": "RefinementType", "base": self.base.serialize(),
-                "class_path": '.'.join([self.__class__.__module__, self.__class__.__name__]),
-                "args": self.serialize_args()}
+        return {
+            ".class": "RefinementType",
+            "base": self.base.serialize(),
+            "class_path": ".".join([self.__class__.__module__, self.__class__.__name__]),
+            "args": self.serialize_args(),
+        }
 
     @classmethod
     def deserialize_args(cls, base: Instance, args: JsonDict | str) -> RefinementType:
@@ -1518,7 +1543,7 @@ class RefinementType(ProperType):
         base = Instance.deserialize(data["base"])
         class_path = cast(str, data["class_path"])
         for c in cls.__subclasses__():
-            if '.'.join([c.__module__, c.__name__]) == class_path:
+            if ".".join([c.__module__, c.__name__]) == class_path:
                 return c.deserialize_args(base, data["args"])
 
         raise NotImplementedError(f"Cannot deserialize refinement type of class {class_path}")
@@ -2422,9 +2447,9 @@ class TypedDictType(ProperType):
         return (
             frozenset(self.items.keys()) == frozenset(other.items.keys())
             and all(
-            left_item_type == right_item_type
-            for (_, left_item_type, right_item_type) in self.zip(other)
-        )
+                left_item_type == right_item_type
+                for (_, left_item_type, right_item_type) in self.zip(other)
+            )
             and self.fallback == other.fallback
             and self.required_keys == other.required_keys
         )

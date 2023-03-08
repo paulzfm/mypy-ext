@@ -140,6 +140,7 @@ from mypy.types import (
     ParamSpecType,
     PartialType,
     ProperType,
+    RefinementType,
     TupleType,
     Type,
     TypeAliasType,
@@ -159,7 +160,7 @@ from mypy.types import (
     is_named_instance,
     is_optional,
     is_self_type_like,
-    remove_optional, RefinementType,
+    remove_optional,
 )
 from mypy.typestate import type_state
 from mypy.typevars import fill_typevars

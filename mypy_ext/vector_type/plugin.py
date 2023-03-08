@@ -4,8 +4,14 @@ from typing import Callable
 
 from mypy.join import join_types
 from mypy.options import Options
-from mypy.plugin import AnalyzeTypeContext, MethodContext, Plugin, FunctionContext, MethodSigContext
-from mypy.types import RawExpressionType, Type, UnboundType, LiteralType, Instance, FunctionLike
+from mypy.plugin import (
+    AnalyzeTypeContext,
+    FunctionContext,
+    MethodContext,
+    MethodSigContext,
+    Plugin,
+)
+from mypy.types import FunctionLike, Instance, LiteralType, RawExpressionType, Type, UnboundType
 from mypy_ext.finite_type.typing import FiniteType
 from mypy_ext.utils import fullname_of
 from mypy_ext.vector_type import Vec
@@ -60,7 +66,9 @@ def infer_add(ctx: MethodContext) -> Type:
 def check_get_set(ctx: MethodSigContext) -> FunctionLike:
     sig = ctx.default_signature
     if isinstance(ctx.type, VectorType):
-        sig.arg_types[0] = FiniteType(ctx.api.named_generic_type("builtins.int", []), ctx.type.size)
+        sig.arg_types[0] = FiniteType(
+            ctx.api.named_generic_type("builtins.int", []), ctx.type.size
+        )
 
     return sig
 
@@ -81,7 +89,9 @@ class VectorPlugin(Plugin):
 
         return None
 
-    def get_method_signature_hook(self, fullname: str) -> Callable[[MethodSigContext], FunctionLike] | None:
+    def get_method_signature_hook(
+        self, fullname: str
+    ) -> Callable[[MethodSigContext], FunctionLike] | None:
         if fullname in ("builtins.list.__getitem__", "builtins.list.__setitem__"):
             return check_get_set
 

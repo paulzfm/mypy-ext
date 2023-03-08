@@ -1,7 +1,7 @@
 from typing import Sequence, cast
 
 from mypy.subtypes import is_subtype
-from mypy.types import Type, RefinementType, Instance, JsonDict, LiteralValue, deserialize_type
+from mypy.types import Instance, JsonDict, LiteralValue, RefinementType, Type, deserialize_type
 from mypy_ext.utils import fullname_of, type_is
 from mypy_ext.vector_type import Vec
 
@@ -13,7 +13,9 @@ class VectorType(RefinementType):
     elem_type: Type
     size: int
 
-    def __init__(self, base: Instance, elem_type: Type, size: int, line: int = -1, column: int = -1) -> None:
+    def __init__(
+        self, base: Instance, elem_type: Type, size: int, line: int = -1, column: int = -1
+    ) -> None:
         # assert base.type.fullname == "builtins.list"
         super().__init__(base, line, column)
         self.elem_type = elem_type

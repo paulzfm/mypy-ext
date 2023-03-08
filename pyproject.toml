@@ -10,11 +10,11 @@ requires = [
     "mypy_extensions>=1.0.0",
     "typed_ast>=1.4.0,<2; python_version<'3.8'",
     "tomli>=1.1.0; python_version<'3.11'",
+    "automata-lib>=7.1.0",
     # the following is from build-requirements.txt
     "types-psutil",
     "types-setuptools<67.4.0.2",  # TODO: fix build when using the latest version of types-setuptools
     "types-typed-ast>=1.5.8,<1.6.0",
-    "parsec>=3.3"
 ]
 build-backend = "setuptools.build_meta"
 
