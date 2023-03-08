@@ -8,7 +8,7 @@ from mypy.options import Options
 from mypy.plugin import AnalyzeTypeContext, MethodContext, Plugin
 from mypy.types import Instance, LiteralType, ProperType, Type, UnboundType
 from mypy_ext.regular_type import Re
-from mypy_ext.regular_type.re_ops import re_starts_with
+from mypy_ext.regular_type.re_ops import re_starts_with, re_ends_with
 from mypy_ext.regular_type.typing import RegularType
 from mypy_ext.utils import fullname_of
 
@@ -87,7 +87,29 @@ def infer_startswith(ctx: MethodContext) -> Type:
     if k1 == IS_CONST and k2 == IS_CONST:
         return LiteralType(s1.startswith(s2), bool_type)
     if k1 == IS_RE and k2 == IS_CONST:
-        return LiteralType(re_starts_with(s1, s2), bool_type)
+        if re_starts_with(s1, s2):
+            return LiteralType(True, bool_type)
+        return bool_type
+    if k1 == IS_RE and k2 == IS_RE:
+        pass  # consider this in future
+
+    # fallback
+    return bool_type
+
+
+def infer_endswith(ctx: MethodContext) -> Type:
+    bool_type = ctx.api.named_generic_type("builtins.bool", [])
+
+    t1, [[t2], _, _] = ctx.type, ctx.arg_types
+    k1, s1 = try_extract(t1)
+    k2, s2 = try_extract(t2)
+
+    if k1 == IS_CONST and k2 == IS_CONST:
+        return LiteralType(s1.startswith(s2), bool_type)
+    if k1 == IS_RE and k2 == IS_CONST:
+        if re_ends_with(s1, s2):
+            return LiteralType(True, bool_type)
+        return bool_type
     if k1 == IS_RE and k2 == IS_RE:
         pass  # consider this in future
 
@@ -116,7 +138,7 @@ class RegularPlugin(Plugin):
             return infer_startswith
 
         if fullname == "builtins.str.endswith":
-            return infer_startswith
+            return infer_endswith
 
         return None
 

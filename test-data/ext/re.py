@@ -34,5 +34,10 @@ def suffix_with_s(s: str) -> Re[".*s"]:
 def should_start_with(s: Re["a+b+"]) -> Literal[True]:
     return s.startswith("a")
 
-# def should_end_with(s: Re["a+b+"]) -> Literal[True]:
-#     return s.endswith("b")
+
+def should_end_with(s: Re["a+b+"]) -> Literal[True]:
+    return s.endswith("b")
+
+
+# def may_not_end_with(s: Re["a+b*"]) -> Literal[True]:
+#     return s.endswith("b")   # type error
