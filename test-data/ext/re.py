@@ -15,29 +15,27 @@ def re_subtype(s: Re["a+"]) -> Re["a*"]:
     return s
 
 
-def str_lit_concat(s1: Literal["a"], s2: Literal["b"]) -> Literal["ab"]:
-    return s1 + s2
+def expects_many_a(s: Re["a*"]) -> str:
+    return s
 
 
-def re_concat(s1: Re["a+"], s2: Re["b+"]) -> Re["a+b+"]:
-    return s1 + s2
+def expects_at_least_one_a(s: Re["a+"]) -> str:
+    return s
 
 
-def re_str_concat(s1: Re["a|b"], s2: str) -> Re["(a|b).*"]:
-    return s1 + s2
+def expects_a_or_b(s: Re["a|b"]) -> str:
+    return s
 
 
-def suffix_with_s(s: str) -> Re[".*s"]:
-    return s + "s"
+def test() -> None:
+    expects_many_a("")
+    expects_many_a("a")
+    expects_many_a("aa")
 
+    # expects_at_least_one_a("")  # type error
+    expects_at_least_one_a("a")
+    expects_at_least_one_a("aa")
 
-def should_start_with(s: Re["a+b+"]) -> Literal[True]:
-    return s.startswith("a")
-
-
-def should_end_with(s: Re["a+b+"]) -> Literal[True]:
-    return s.endswith("b")
-
-
-# def may_not_end_with(s: Re["a+b*"]) -> Literal[True]:
-#     return s.endswith("b")   # type error
+    expects_a_or_b("a")
+    expects_a_or_b("b")
+    # expects_a_or_b("c")  # type error
