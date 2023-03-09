@@ -1,14 +1,14 @@
 import ast
-from typing import Callable, Tuple
+from typing import Callable
 
 from automata.base.exceptions import InvalidRegexError
-from automata.regex import regex as re
 
 from mypy.options import Options
-from mypy.plugin import AnalyzeTypeContext, MethodContext, Plugin
+from mypy.plugin import AnalyzeTypeContext, MethodContext, Plugin, FunctionContext
 from mypy.types import Instance, LiteralType, ProperType, Type, UnboundType
+from mypy_ext.finite_type.plugin import try_extract as try_extract_int
 from mypy_ext.regular_type import Re
-from mypy_ext.regular_type.re_ops import re_starts_with, re_ends_with
+from mypy_ext.regular_type.re_ops import *
 from mypy_ext.regular_type.typing import RegularType
 from mypy_ext.utils import fullname_of
 
@@ -32,7 +32,7 @@ def analyze_type(ctx: AnalyzeTypeContext) -> Type:
         return str_type
 
     try:
-        re.validate(regex)
+        RE.validate(regex)
     except InvalidRegexError:
         ctx.api.fail("Argument of Re[...] is not a valid regex", arg)
         return str_type
@@ -77,6 +77,23 @@ def infer_add(ctx: MethodContext) -> Type:
     return str_type
 
 
+def infer_length(ctx: FunctionContext) -> Type:
+    int_type = ctx.api.named_generic_type("builtins.int", [])
+
+    [[t]] = ctx.arg_types
+    k, s = try_extract(t)
+
+    if k == IS_CONST:
+        return LiteralType(len(s), int_type)
+    if k == IS_RE:
+        minimal, maximal = re_length(s)
+        if minimal == maximal:
+            return LiteralType(minimal, int_type)
+
+    # fallback
+    return int_type
+
+
 def infer_startswith(ctx: MethodContext) -> Type:
     bool_type = ctx.api.named_generic_type("builtins.bool", [])
 
@@ -86,12 +103,10 @@ def infer_startswith(ctx: MethodContext) -> Type:
 
     if k1 == IS_CONST and k2 == IS_CONST:
         return LiteralType(s1.startswith(s2), bool_type)
-    if k1 == IS_RE and k2 == IS_CONST:
-        if re_starts_with(s1, s2):
-            return LiteralType(True, bool_type)
-        return bool_type
-    if k1 == IS_RE and k2 == IS_RE:
-        pass  # consider this in future
+    if k1 == IS_RE and k2 == IS_CONST and re_starts_with(s1, s2):
+        return LiteralType(True, bool_type)
+    if k1 == IS_RE and k2 == IS_RE and re_starts_with_re(s1, s2):
+        return LiteralType(True, bool_type)
 
     # fallback
     return bool_type
@@ -106,15 +121,78 @@ def infer_endswith(ctx: MethodContext) -> Type:
 
     if k1 == IS_CONST and k2 == IS_CONST:
         return LiteralType(s1.startswith(s2), bool_type)
-    if k1 == IS_RE and k2 == IS_CONST:
-        if re_ends_with(s1, s2):
-            return LiteralType(True, bool_type)
-        return bool_type
-    if k1 == IS_RE and k2 == IS_RE:
-        pass  # consider this in future
+    if k1 == IS_RE and k2 == IS_CONST and re_ends_with(s1, s2):
+        return LiteralType(True, bool_type)
+    if k1 == IS_RE and k2 == IS_RE and re_ends_with_re(s1, s2):
+        return LiteralType(True, bool_type)
 
     # fallback
     return bool_type
+
+
+def infer_contains(ctx: MethodContext) -> Type:
+    bool_type = ctx.api.named_generic_type("builtins.bool", [])
+
+    t1, [[t2]] = ctx.type, ctx.arg_types
+    k1, s1 = try_extract(t1)
+    k2, s2 = try_extract(t2)
+
+    if k1 == IS_CONST and k2 == IS_CONST:
+        return LiteralType(s1 in s2, bool_type)
+    if k1 == IS_RE and k2 == IS_CONST and re_contains(s1, s2):
+        return LiteralType(True, bool_type)
+    if k1 == IS_RE and k2 == IS_RE and re_contains_re(s1, s2):
+        return LiteralType(True, bool_type)
+
+    # fallback
+    return bool_type
+
+
+def infer_upper(ctx: MethodContext) -> Type:
+    str_type = ctx.api.named_generic_type("builtins.str", [])
+    t, [] = ctx.type, ctx.arg_types
+    k, s = try_extract(t)
+
+    if k == IS_CONST:
+        return LiteralType(s.upper(), str_type)
+    if k == IS_RE:
+        regex = s.upper()
+        assert RE.validate(regex)
+        return RegularType(str_type, regex)
+    return str_type
+
+
+def infer_lower(ctx: MethodContext) -> Type:
+    str_type = ctx.api.named_generic_type("builtins.str", [])
+    t, [] = ctx.type, ctx.arg_types
+    k, s = try_extract(t)
+
+    if k == IS_CONST:
+        return LiteralType(s.lower(), str_type)
+    if k == IS_RE:
+        regex = s.lower()
+        assert RE.validate(regex)
+        return RegularType(str_type, regex)
+    return str_type
+
+
+def infer_get_item(ctx: MethodContext) -> Type:
+    str_type = ctx.api.named_generic_type("builtins.str", [])
+    t, [[ti]] = ctx.type, ctx.arg_types
+    k, s = try_extract(t)
+    ki, n = try_extract_int(ti)
+
+    if k == IS_CONST and ki == IS_CONST:
+        return LiteralType(s[n], str_type)
+    if k == IS_RE and ki == IS_CONST:
+        minimal, _ = re_length(s)
+        if n >= minimal:
+            ctx.api.fail(f"Index out of range (minimal length is {minimal})", ctx.context)
+            return str_type
+        return RegularType(str_type, re_char_at(s, n + 1))
+
+    # fallback
+    return str_type
 
 
 class RegularPlugin(Plugin):
@@ -124,6 +202,12 @@ class RegularPlugin(Plugin):
     def get_type_analyze_hook(self, fullname: str) -> Callable[[AnalyzeTypeContext], Type] | None:
         if fullname == fullname_of(Re):
             return analyze_type
+
+        return None
+
+    def get_function_hook(self, fullname: str) -> Callable[[FunctionContext], Type] | None:
+        if fullname == "builtins.len":
+            return infer_length
 
         return None
 
@@ -139,6 +223,18 @@ class RegularPlugin(Plugin):
 
         if fullname == "builtins.str.endswith":
             return infer_endswith
+
+        if fullname == "builtins.str.__contains__":
+            return infer_contains
+
+        if fullname == "builtins.str.upper":
+            return infer_upper
+
+        if fullname == "builtins.str.lower":
+            return infer_lower
+
+        if fullname == "builtins.str.__getitem__":
+            return infer_get_item
 
         return None
 

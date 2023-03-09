@@ -3,7 +3,7 @@ from typing import Sequence
 from automata.fa.nfa import NFA
 from automata.regex import regex as re
 
-from mypy.types import Instance, JsonDict, LiteralValue, RefinementType, Type
+from mypy.types import Instance, JsonDict, LiteralValue, RefinementType, Type, LiteralType
 from mypy_ext.regular_type import Re
 from mypy_ext.utils import fullname_of, type_is
 
@@ -31,6 +31,9 @@ class RegularType(RefinementType):
             return re.issubset(self.regex, other.regex)
         if type_is(other, "typing.Sized"):
             return True
+        if isinstance(other, LiteralType) and isinstance(other.value, str):
+            return re.isequal(self.regex, other.value)
+
         return False
 
     def __contains__(self, value: LiteralValue) -> bool:
