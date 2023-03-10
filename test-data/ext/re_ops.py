@@ -52,8 +52,11 @@ def may_not_end_with_b(s: Re["a+b*"]) -> bool:
 
 # __contains__
 def should_contain_a(s: Re["a+b+"]) -> Literal[True]:
-    # TODO: why mypy ignored our return type?
     return "a" in s
+
+
+def should_contain_ab(s: Re["a+b+"]) -> Literal[True]:
+    return "ab" in s
 
 
 # upper, lower

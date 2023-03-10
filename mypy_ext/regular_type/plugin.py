@@ -138,7 +138,7 @@ def infer_contains(ctx: MethodContext) -> Type:
     k2, s2 = try_extract(t2)
 
     if k1 == IS_CONST and k2 == IS_CONST:
-        return LiteralType(s1 in s2, bool_type)
+        return LiteralType(s2 in s1, bool_type)
     if k1 == IS_RE and k2 == IS_CONST and re_contains(s1, s2):
         return LiteralType(True, bool_type)
     if k1 == IS_RE and k2 == IS_RE and re_contains_re(s1, s2):

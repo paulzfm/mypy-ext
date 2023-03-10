@@ -2930,7 +2930,7 @@ class ExpressionChecker(ExpressionVisitor[Type]):
         That is, 'a < b > c == d' is check as 'a < b and b > c and c == d'
         """
         result: Type | None = None
-        sub_result: Type
+        sub_result: Type | None = None
 
         # Check each consecutive operand pair and their operator
         for left, right, operator in zip(e.operands, e.operands[1:], e.operators):
@@ -2955,7 +2955,9 @@ class ExpressionChecker(ExpressionVisitor[Type]):
                 if isinstance(right_type, UnionType):
                     item_types = list(right_type.relevant_items())
 
-                sub_result = self.bool_type()
+                # NOTE: to infer more precise Boolean types (i.e., Literal[True], Literal[False]),
+                # this operator cannot always return `bool`.
+                # sub_result = self.bool_type()
 
                 container_types: list[Type] = []
                 iterable_types: list[Type] = []
@@ -2966,7 +2968,7 @@ class ExpressionChecker(ExpressionVisitor[Type]):
                     # Keep track of whether we get type check errors (these won't be reported, they
                     # are just to verify whether something is valid typing wise).
                     with self.msg.filter_errors(save_filtered_errors=True) as container_errors:
-                        _, method_type = self.check_method_call_by_name(
+                        result_type, method_type = self.check_method_call_by_name(
                             method="__contains__",
                             base_type=item_type,
                             args=[left],
@@ -2974,6 +2976,12 @@ class ExpressionChecker(ExpressionVisitor[Type]):
                             context=e,
                             original_type=right_type,
                         )
+                        # Compute the most precise type.
+                        if sub_result is None:
+                            sub_result = result_type
+                        else:
+                            sub_result = join.join_types(sub_result, result_type)
+
                         # Container item type for strict type overlap checks. Note: we need to only
                         # check for nominal type, because a usual "Unsupported operands for in"
                         # will be reported for types incompatible with __contains__().

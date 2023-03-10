@@ -214,7 +214,7 @@ from mypy.types import (
     is_optional,
     remove_optional,
     store_argument_type,
-    strip_type,
+    strip_type, RefinementType,
 )
 from mypy.typetraverser import TypeTraverserVisitor
 from mypy.typevars import fill_typevars, fill_typevars_with_any, has_no_typevars
@@ -4570,6 +4570,8 @@ class TypeChecker(NodeVisitor[None], CheckerPluginInterface):
             super_instance = map_instance_to_supertype(typ, supertype)
             assert len(super_instance.args) == 1
             return super_instance.args[0]
+        if isinstance(typ, RefinementType):
+            return self.analyze_container_item_type(typ.base)
         if isinstance(typ, TupleType):
             return self.analyze_container_item_type(tuple_fallback(typ))
         return None
