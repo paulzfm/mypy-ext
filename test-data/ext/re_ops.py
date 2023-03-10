@@ -73,5 +73,6 @@ def re_getitem_det(s: Re["a+b+"]) -> Literal["a"]:
 def re_getitem_nondet(s: Re["a+b+"]) -> Re["a|b"]:
     return s[1]
 
-# def re_getitem_out_of_bound(s: Re["a+b+"]) -> str:
-#     return s[2]  # type error
+
+def re_getitem_out_of_bound(s: Re["a+b+"]) -> str:
+    return s[2]  # type error

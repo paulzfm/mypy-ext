@@ -30,8 +30,9 @@ Regex: TypeAlias = str
 Char: TypeAlias = str
 
 
-def re_length(regex: Regex) -> Tuple[int, int]:
+def re_length(regex: Regex) -> Tuple[int, int | None]:
     dfa = DFA.from_nfa(NFA.from_regex(regex))
+    # TODO: empty languages
     return dfa.minimum_word_length(), dfa.maximum_word_length()
 
 

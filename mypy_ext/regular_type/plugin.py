@@ -87,7 +87,7 @@ def infer_length(ctx: FunctionContext) -> Type:
         return LiteralType(len(s), int_type)
     if k == IS_RE:
         minimal, maximal = re_length(s)
-        if minimal == maximal:
+        if maximal is not None and minimal == maximal:
             return LiteralType(minimal, int_type)
 
     # fallback

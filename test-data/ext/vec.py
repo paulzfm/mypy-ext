@@ -25,6 +25,7 @@ def vec_subtype(v: Vec[Square, 5]) -> Vec[Shape, 5]:
 
 
 def vec_length(v: Vec[Shape, 5]) -> Literal[5]:
+    # TODO: it seems that multiple plugins have conflict in hooking the same method
     return len(v)
 
 
