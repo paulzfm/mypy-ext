@@ -1781,8 +1781,13 @@ class TypeConverter:
 
         See RawExpressionType's docstring for more details on how it's used.
         """
+        if isinstance(node, ast3.expr):
+            expr = node
+        else:
+            expr = None
+
         return RawExpressionType(
-            None, "typing.Any", line=self.line, column=getattr(node, "col_offset", -1), note=note
+            None, "typing.Any", raw_expr=expr, line=self.line, column=getattr(node, "col_offset", -1), note=note
         )
 
     @overload

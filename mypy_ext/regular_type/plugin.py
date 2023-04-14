@@ -70,7 +70,7 @@ def infer_add(ctx: MethodContext) -> Type:
         return LiteralType(s1 + s2, str_type)
     if k1 == IS_STR and k2 == IS_STR:
         return str_type
-    if k1 != IS_ERROR and k2 != IS_ERROR:
+    if (k1 == IS_RE or k1 == IS_STR) and (k2 == IS_RE or k2 == IS_STR):
         return RegularType(str_type, f"({s1})({s2})")
 
     # fallback

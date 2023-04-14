@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import ast
 import itertools
 from contextlib import contextmanager
-from typing import Callable, Iterable, Iterator, List, Sequence, Tuple, TypeVar
+from typing import Callable, Iterable, Iterator, List, Sequence, Tuple, TypeVar, Any
 from typing_extensions import Final, Protocol
 
 from mypy import errorcodes as codes, message_registry, nodes
@@ -90,6 +91,7 @@ from mypy.types import (
 )
 from mypy.typetraverser import TypeTraverserVisitor
 from mypy.typevars import fill_typevars
+from mypy_ext.utils import RefinementTypeBuilder
 
 T = TypeVar("T")
 
@@ -1051,6 +1053,11 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
         return TypedDictType(items, set(t.required_keys), t.fallback)
 
     def visit_raw_expression_type(self, t: RawExpressionType) -> Type:
+        if t.raw_expr is not None:
+            typ = self.eval_type_function(t)
+            if typ:
+                return typ
+
         # We should never see a bare Literal. We synthesize these raw literals
         # in the earlier stages of semantic analysis, but those
         # "fake literals" should always be wrapped in an UnboundType
@@ -1082,6 +1089,37 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
                 self.note(t.note, t, code=codes.VALID_TYPE)
 
         return AnyType(TypeOfAny.from_error, line=t.line, column=t.column)
+
+    def eval_type_function(self, t: RawExpressionType) -> Type | None:
+        # collect names
+        def lookup(name: str) -> SymbolTableNode | None:
+            return self.lookup_qualified(name, t)
+
+        class Resolver(ast.NodeVisitor):
+            def __init__(self):
+                self.env: dict[str, Any] = {}
+
+            def put(self, name: str, fullname: str):
+                parts = fullname.split('.')
+                o = __import__(parts[0])
+                for x in parts[1:]:
+                    o = getattr(o, x)
+
+                self.env[name] = o
+
+            def visit_Name(self, node: ast.Name) -> None:
+                if node.id not in self.env:
+                    result = lookup(node.id)
+                    if result and result.node:
+                        self.put(node.id, result.node.fullname)
+
+        resolver = Resolver()
+        resolver.visit(t.raw_expr)
+        v = eval(ast.unparse(t.raw_expr), {}, resolver.env)
+        if isinstance(v, RefinementTypeBuilder):
+            return v.build(self, t.line, t.column)
+
+        return None
 
     def visit_literal_type(self, t: LiteralType) -> Type:
         return t

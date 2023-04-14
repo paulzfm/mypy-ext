@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import sys
 from abc import abstractmethod
 from typing import (
@@ -2570,12 +2571,13 @@ class RawExpressionType(ProperType):
         )
     """
 
-    __slots__ = ("literal_value", "base_type_name", "note")
+    __slots__ = ("literal_value", "base_type_name", "raw_expr", "note")
 
     def __init__(
         self,
         literal_value: LiteralValue | None,
         base_type_name: str,
+        raw_expr: ast.expr | None = None,
         line: int = -1,
         column: int = -1,
         note: str | None = None,
@@ -2583,6 +2585,7 @@ class RawExpressionType(ProperType):
         super().__init__(line, column)
         self.literal_value = literal_value
         self.base_type_name = base_type_name
+        self.raw_expr = raw_expr
         self.note = note
 
     def simple_name(self) -> str:
