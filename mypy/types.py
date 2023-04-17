@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import ast
 import sys
 from abc import abstractmethod
 from typing import (
@@ -834,30 +833,6 @@ class UnboundType(ProperType):
         "original_str_expr",
         "original_str_fallback",
     )
-
-    # try:
-    #     # Check if we can use the stdlib ast module instead of typed_ast.
-    #     if sys.version_info >= (3, 8):
-    #         import ast as ast3
-    #     else:
-    #         from typed_ast import ast3
-    # except ImportError:
-    #     try:
-    #         from typed_ast import ast35  # type: ignore[attr-defined]
-    #     except ImportError:
-    #         print(
-    #             "The typed_ast package is not installed.\n"
-    #             "You can install it with `python3 -m pip install typed-ast`.",
-    #             file=sys.stderr,
-    #         )
-    #     else:
-    #         print(
-    #             "You need a more recent version of the typed_ast package.\n"
-    #             "You can update to the latest version with "
-    #             "`python3 -m pip install -U typed-ast`.",
-    #             file=sys.stderr,
-    #         )
-    #     sys.exit(1)
 
     def __init__(
         self,
@@ -2441,9 +2416,9 @@ class TypedDictType(ProperType):
         return (
             frozenset(self.items.keys()) == frozenset(other.items.keys())
             and all(
-            left_item_type == right_item_type
-            for (_, left_item_type, right_item_type) in self.zip(other)
-        )
+                left_item_type == right_item_type
+                for (_, left_item_type, right_item_type) in self.zip(other)
+            )
             and self.fallback == other.fallback
             and self.required_keys == other.required_keys
         )
@@ -2566,11 +2541,20 @@ class RawExpressionType(ProperType):
 
     __slots__ = ("literal_value", "base_type_name", "raw_expr", "note")
 
+    try:
+        # Check if we can use the stdlib ast module instead of typed_ast.
+        if sys.version_info >= (3, 8):
+            import ast as ast3
+        else:
+            from typed_ast import ast3
+    except ImportError:
+        sys.exit(1)
+
     def __init__(
         self,
         literal_value: LiteralValue | None,
         base_type_name: str,
-        raw_expr: ast.expr | None = None,
+        raw_expr: ast3.expr | None = None,
         line: int = -1,
         column: int = -1,
         note: str | None = None,

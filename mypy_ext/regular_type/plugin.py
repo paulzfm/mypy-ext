@@ -1,13 +1,23 @@
-from typing import Callable, cast
+from typing import Callable, Tuple, cast
 
 from automata.base.exceptions import InvalidRegexError
+from automata.regex import regex as RE
 
 from mypy.options import Options
-from mypy.plugin import MethodContext, Plugin, FunctionContext, AnalyzeRefinementTypeContext
+from mypy.plugin import AnalyzeRefinementTypeContext, FunctionContext, MethodContext, Plugin
 from mypy.types import Instance, LiteralType, ProperType, Type
 from mypy_ext.finite_type.plugin import try_extract as try_extract_int
 from mypy_ext.regular_type import RegularTypeWrapper
-from mypy_ext.regular_type.re_ops import *
+from mypy_ext.regular_type.re_ops import (
+    re_char_at,
+    re_contains,
+    re_contains_re,
+    re_ends_with,
+    re_ends_with_re,
+    re_length,
+    re_starts_with,
+    re_starts_with_re,
+)
 from mypy_ext.regular_type.typing import RegularType
 from mypy_ext.utils import fullname_of
 
@@ -183,7 +193,9 @@ class RegularPlugin(Plugin):
     def __init__(self, options: Options) -> None:
         super().__init__(options)
 
-    def get_refinement_type_analyze_hook(self, fullname: str) -> Callable[[AnalyzeRefinementTypeContext], Type] | None:
+    def get_refinement_type_analyze_hook(
+        self, fullname: str
+    ) -> Callable[[AnalyzeRefinementTypeContext], Type] | None:
         if fullname == fullname_of(RegularTypeWrapper):
             return analyze_refinement_type
 

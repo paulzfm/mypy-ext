@@ -385,11 +385,11 @@ def parse_type_string(
         elif isinstance(node, UnionType):
             return node
         else:
-            return RawExpressionType(expr_string, expr_fallback_name, line, column)
+            return RawExpressionType(expr_string, expr_fallback_name, line=line, column=column)
     except (SyntaxError, ValueError):
         # Note: the parser will raise a `ValueError` instead of a SyntaxError if
         # the string happens to contain things like \x00.
-        return RawExpressionType(expr_string, expr_fallback_name, line, column)
+        return RawExpressionType(expr_string, expr_fallback_name, line=line, column=column)
 
 
 def is_no_type_check_decorator(expr: ast3.expr) -> bool:
@@ -1787,7 +1787,12 @@ class TypeConverter:
             expr = None
 
         return RawExpressionType(
-            None, "typing.Any", raw_expr=expr, line=self.line, column=getattr(node, "col_offset", -1), note=note
+            None,
+            "typing.Any",
+            raw_expr=expr,
+            line=self.line,
+            column=getattr(node, "col_offset", -1),
+            note=note,
         )
 
     @overload
@@ -1944,7 +1949,9 @@ class TypeConverter:
             return self.numeric_type(val, n)
         if isinstance(val, bytes):
             contents = bytes_to_human_readable_repr(val)
-            return RawExpressionType(contents, "builtins.bytes", self.line, column=n.col_offset)
+            return RawExpressionType(
+                contents, "builtins.bytes", line=self.line, column=n.col_offset
+            )
         # Everything else is invalid.
         return self.invalid_type(n)
 
@@ -1992,7 +1999,7 @@ class TypeConverter:
     # Bytes(bytes s)
     def visit_Bytes(self, n: Bytes) -> Type:
         contents = bytes_to_human_readable_repr(n.s)
-        return RawExpressionType(contents, "builtins.bytes", self.line, column=n.col_offset)
+        return RawExpressionType(contents, "builtins.bytes", line=self.line, column=n.col_offset)
 
     def visit_Index(self, n: ast3.Index) -> Type:
         # cast for mypyc's benefit on Python 3.9

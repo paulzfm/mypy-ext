@@ -3074,7 +3074,7 @@ class ExpressionChecker(ExpressionVisitor[Type]):
             #  Determine type of boolean-and of result and sub_result
             if result is None:
                 result = sub_result
-            else:
+            elif sub_result is not None:
                 result = join.join_types(result, sub_result)
 
         assert result is not None

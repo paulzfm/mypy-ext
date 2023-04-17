@@ -1,4 +1,4 @@
-from typing import TypeAlias, Tuple
+from typing import Tuple, TypeAlias
 
 from automata.fa.dfa import DFA
 from automata.fa.nfa import NFA
@@ -82,4 +82,4 @@ def re_char_at(regex: Regex, index: int) -> Regex:
         if re_may_have_char_at(dfa, ch, index):
             candidates.add(ch)
     assert len(candidates) > 0
-    return '|'.join(candidates)
+    return "|".join(candidates)

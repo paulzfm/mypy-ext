@@ -3,7 +3,7 @@ from typing import Sequence
 from automata.fa.nfa import NFA
 from automata.regex import regex as re
 
-from mypy.types import Instance, JsonDict, LiteralValue, RefinementType, Type, LiteralType
+from mypy.types import Instance, JsonDict, LiteralType, LiteralValue, RefinementType, Type
 from mypy_ext.regular_type import re_lang
 from mypy_ext.utils import fullname_of, type_is
 

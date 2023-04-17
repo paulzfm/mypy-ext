@@ -192,6 +192,7 @@ from mypy.types import (
     Overloaded,
     PartialType,
     ProperType,
+    RefinementType,
     TupleType,
     Type,
     TypeAliasType,
@@ -214,7 +215,7 @@ from mypy.types import (
     is_optional,
     remove_optional,
     store_argument_type,
-    strip_type, RefinementType,
+    strip_type,
 )
 from mypy.typetraverser import TypeTraverserVisitor
 from mypy.typevars import fill_typevars, fill_typevars_with_any, has_no_typevars

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Type as PyType, Callable
+from typing import Callable, Type as PyType
 
 from mypy.plugin import TypeAnalyzerPluginInterface
 from mypy.types import Instance, Type

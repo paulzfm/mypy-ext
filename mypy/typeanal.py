@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import ast
 import importlib
 import importlib.util
 import itertools
 import sys
 from contextlib import contextmanager
-from typing import Callable, Iterable, Iterator, List, Sequence, Tuple, TypeVar, Any, cast
-
+from typing import Any, Callable, Iterable, Iterator, List, Sequence, Tuple, TypeVar, cast
 from typing_extensions import Final, Protocol
 
 from mypy import errorcodes as codes, message_registry, nodes
@@ -38,11 +36,16 @@ from mypy.nodes import (
     Var,
     check_arg_kinds,
     check_arg_names,
-    get_nongen_builtins, )
+    get_nongen_builtins,
+)
 from mypy.options import UNPACK, Options
-from mypy.plugin import AnalyzeTypeContext, Plugin, TypeAnalyzerPluginInterface, AnalyzeRefinementTypeContext
+from mypy.plugin import (
+    AnalyzeRefinementTypeContext,
+    AnalyzeTypeContext,
+    Plugin,
+    TypeAnalyzerPluginInterface,
+)
 from mypy.semanal_shared import SemanticAnalyzerCoreInterface, paramspec_args, paramspec_kwargs
-from mypy.subtypes import is_subtype
 from mypy.tvar_scope import TypeVarLikeScope
 from mypy.types import (
     ANNOTATED_TYPE_NAMES,
@@ -171,6 +174,16 @@ def no_subscript_builtin_alias(name: str, propose_alt: bool = True) -> str:
     if replacement and propose_alt:
         msg += f', use "{replacement}" instead'
     return msg
+
+
+try:
+    # Check if we can use the stdlib ast module instead of typed_ast.
+    if sys.version_info >= (3, 8):
+        import ast as ast3
+    else:
+        from typed_ast import ast3
+except ImportError:
+    sys.exit(1)
 
 
 class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
@@ -819,8 +832,8 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
             )
 
         # Option 4: an expression that evaluates to a type wrapper.
-        if len(t.args) == 0 and isinstance(sym.node, Var):
-            raw_expr = ast.Name(t.name, line=t.line, column=t.column)
+        if self.options.allow_expr_annotation and len(t.args) == 0 and isinstance(sym.node, Var):
+            raw_expr = ast3.Name(t.name, line=t.line, column=t.column)
             result = self.try_eval_type_wrapper(raw_expr, t)
             if result:
                 return result
@@ -1064,7 +1077,7 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
         return TypedDictType(items, set(t.required_keys), t.fallback)
 
     def visit_raw_expression_type(self, t: RawExpressionType) -> Type:
-        if t.raw_expr is not None:
+        if self.options.allow_expr_annotation and t.raw_expr is not None:
             typ = self.try_eval_type_wrapper(t.raw_expr, t)
             if typ:
                 return typ
@@ -1101,14 +1114,14 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
 
         return AnyType(TypeOfAny.from_error, line=t.line, column=t.column)
 
-    def try_eval_type_wrapper(self, expr: ast.expr, ctx: Context) -> Type | None:
-        class Resolver(ast.NodeVisitor):
+    def try_eval_type_wrapper(self, expr: ast3.expr, ctx: Context) -> Type | None:
+        class NameResolver(ast3.NodeVisitor):
             def __init__(self, api: SemanticAnalyzerCoreInterface):
                 self.env: dict[str, Any] = {}
                 self.api = api
 
-            def put(self, name: str, fullname: str):
-                parts = fullname.split('.')
+            def put(self, name: str, fullname: str) -> None:
+                parts = fullname.split(".")
                 module_name = parts[0]
                 try:
                     o = importlib.import_module(module_name)
@@ -1116,10 +1129,13 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
                     # This is possibly caused by importing a name that is not in the mypy codebase,
                     # but a source file that the currently checked file depends on.
                     from mypy.semanal import SemanticAnalyzer
+
                     analyzer = cast(SemanticAnalyzer, self.api)
                     if module_name in analyzer.modules:
                         cu = analyzer.modules[module_name]
                         spec = importlib.util.spec_from_file_location(cu.name, cu.path)
+                        assert spec is not None
+                        assert spec.loader is not None
                         module = importlib.util.module_from_spec(spec)
                         sys.modules[module_name] = module
                         spec.loader.exec_module(module)
@@ -1131,17 +1147,17 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
                     o = getattr(o, x)
                 self.env[name] = o
 
-            def visit_Name(self, node: ast.Name) -> None:
+            def visit_Name(self, node: ast3.Name) -> None:
                 if node.id not in self.env:
                     result = self.api.lookup_qualified(node.id, ctx)
                     if result and result.node:
                         self.put(node.id, result.node.fullname)
 
-        resolver = Resolver(self.api)
+        resolver = NameResolver(self.api)
         resolver.visit(expr)
-        v = eval(ast.unparse(expr), {}, resolver.env)
+        v = eval(ast3.unparse(expr), {}, resolver.env)  # type: ignore[attr-defined]
         if isinstance(v, RefinementTypeWrapper):
-            fullname = '.'.join([v.__module__, v.__class__.__name__])
+            fullname = ".".join([v.__module__, v.__class__.__name__])
             hook = self.plugin.get_refinement_type_analyze_hook(fullname)
             if hook is not None:
                 return hook(AnalyzeRefinementTypeContext(v, ctx, self))

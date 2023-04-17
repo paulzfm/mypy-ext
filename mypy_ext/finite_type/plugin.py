@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Callable, Tuple, cast
 
 from mypy.options import Options
-from mypy.plugin import MethodContext, Plugin, AnalyzeRefinementTypeContext
-from mypy.types import Instance, LiteralType, ProperType, RawExpressionType, Type, UnboundType
-from mypy_ext.finite_type import fin, FiniteTypeWrapper
+from mypy.plugin import AnalyzeRefinementTypeContext, MethodContext, Plugin
+from mypy.types import Instance, LiteralType, ProperType, Type
+from mypy_ext.finite_type import FiniteTypeWrapper
 from mypy_ext.finite_type.typing import FiniteType
 from mypy_ext.utils import fullname_of
 
@@ -57,7 +57,9 @@ class FinitePlugin(Plugin):
     def __init__(self, options: Options) -> None:
         super().__init__(options)
 
-    def get_refinement_type_analyze_hook(self, fullname: str) -> Callable[[AnalyzeRefinementTypeContext], Type] | None:
+    def get_refinement_type_analyze_hook(
+        self, fullname: str
+    ) -> Callable[[AnalyzeRefinementTypeContext], Type] | None:
         if fullname == fullname_of(FiniteTypeWrapper):
             return analyze_refinement_type
 

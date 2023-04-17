@@ -19,6 +19,7 @@ class BuildType:
 
 PER_MODULE_OPTIONS: Final = {
     # Please keep this list sorted
+    "allow_expr_annotation",
     "allow_redefinition",
     "allow_untyped_globals",
     "always_false",
@@ -186,6 +187,9 @@ class Options:
         # Allow variable to be redefined with an arbitrary type in the same block
         # and the same nesting level as the initialization
         self.allow_redefinition = False
+
+        # Allow the appearance of expressions in type annotations, such as `s: re_lang(...)`
+        self.allow_expr_annotation = False
 
         # Prohibit equality, identity, and container checks for non-overlapping types.
         # This makes 1 == '1', 1 in ['1'], and 1 is '1' errors.

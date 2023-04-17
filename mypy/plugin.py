@@ -605,7 +605,9 @@ class Plugin(CommonPluginApi):
         """
         return None
 
-    def get_refinement_type_analyze_hook(self, fullname: str) -> Callable[[AnalyzeRefinementTypeContext], Type] | None:
+    def get_refinement_type_analyze_hook(
+        self, fullname: str
+    ) -> Callable[[AnalyzeRefinementTypeContext], Type] | None:
         """Customize behaviour of the type analyzer for a given full name of refinement type wrapper.
 
         This method is called during the semantic analysis pass whenever mypy evaluates a type expression
@@ -857,7 +859,9 @@ class ChainedPlugin(Plugin):
     def get_type_analyze_hook(self, fullname: str) -> Callable[[AnalyzeTypeContext], Type] | None:
         return self._find_hook(lambda plugin: plugin.get_type_analyze_hook(fullname))
 
-    def get_refinement_type_analyze_hook(self, fullname: str) -> Callable[[AnalyzeRefinementTypeContext], Type] | None:
+    def get_refinement_type_analyze_hook(
+        self, fullname: str
+    ) -> Callable[[AnalyzeRefinementTypeContext], Type] | None:
         return self._find_hook(lambda plugin: plugin.get_refinement_type_analyze_hook(fullname))
 
     def get_function_signature_hook(
