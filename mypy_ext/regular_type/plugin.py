@@ -1,43 +1,27 @@
-import ast
-from typing import Callable
+from typing import Callable, cast
 
 from automata.base.exceptions import InvalidRegexError
 
 from mypy.options import Options
-from mypy.plugin import AnalyzeTypeContext, MethodContext, Plugin, FunctionContext
-from mypy.types import Instance, LiteralType, ProperType, Type, UnboundType
+from mypy.plugin import MethodContext, Plugin, FunctionContext, AnalyzeRefinementTypeContext
+from mypy.types import Instance, LiteralType, ProperType, Type
 from mypy_ext.finite_type.plugin import try_extract as try_extract_int
-from mypy_ext.regular_type import Re
+from mypy_ext.regular_type import RegularTypeWrapper
 from mypy_ext.regular_type.re_ops import *
 from mypy_ext.regular_type.typing import RegularType
 from mypy_ext.utils import fullname_of
 
 
-def analyze_type(ctx: AnalyzeTypeContext) -> Type:
-    assert isinstance(
-        ctx.type, UnboundType
-    ), f"{ctx.type} of type {ctx.type.__class__.__name__} is not UnboundType"
+def analyze_refinement_type(ctx: AnalyzeRefinementTypeContext) -> Type:
+    wrapper = cast(RegularTypeWrapper, ctx.wrapper)
     str_type = ctx.api.named_type("builtins.str", [])
-
-    if len(ctx.type.args) != 1:
-        ctx.api.fail("Re[...] expects one type argument", ctx.type)
-        if len(ctx.type.args) == 0:
-            return str_type
-
-    arg = ctx.type.original_args[0]
-    if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
-        regex = arg.value
-    else:
-        ctx.api.fail("Argument of Re[...] must be a regex string", arg)
-        return str_type
-
     try:
-        RE.validate(regex)
+        RE.validate(wrapper.regex)
     except InvalidRegexError:
-        ctx.api.fail("Argument of Re[...] is not a valid regex", arg)
+        ctx.api.fail("Argument of re_lang(...) is not a valid regex", ctx.context)
         return str_type
 
-    return RegularType(str_type, regex, ctx.type.line, ctx.type.column)
+    return RegularType(str_type, wrapper.regex, ctx.context.line, ctx.context.column)
 
 
 IS_CONST = 1
@@ -70,7 +54,7 @@ def infer_add(ctx: MethodContext) -> Type:
         return LiteralType(s1 + s2, str_type)
     if k1 == IS_STR and k2 == IS_STR:
         return str_type
-    if (k1 == IS_RE or k1 == IS_STR) and (k2 == IS_RE or k2 == IS_STR):
+    if k1 != IS_ERROR and k2 != IS_ERROR and (k1 == IS_RE or k2 == IS_RE):
         return RegularType(str_type, f"({s1})({s2})")
 
     # fallback
@@ -199,9 +183,9 @@ class RegularPlugin(Plugin):
     def __init__(self, options: Options) -> None:
         super().__init__(options)
 
-    def get_type_analyze_hook(self, fullname: str) -> Callable[[AnalyzeTypeContext], Type] | None:
-        if fullname == fullname_of(Re):
-            return analyze_type
+    def get_refinement_type_analyze_hook(self, fullname: str) -> Callable[[AnalyzeRefinementTypeContext], Type] | None:
+        if fullname == fullname_of(RegularTypeWrapper):
+            return analyze_refinement_type
 
         return None
 

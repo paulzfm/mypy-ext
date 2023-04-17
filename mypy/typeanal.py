@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import ast
+import importlib
+import importlib.util
 import itertools
+import sys
 from contextlib import contextmanager
-from typing import Callable, Iterable, Iterator, List, Sequence, Tuple, TypeVar, Any
+from typing import Callable, Iterable, Iterator, List, Sequence, Tuple, TypeVar, Any, cast
+
 from typing_extensions import Final, Protocol
 
 from mypy import errorcodes as codes, message_registry, nodes
@@ -34,11 +38,11 @@ from mypy.nodes import (
     Var,
     check_arg_kinds,
     check_arg_names,
-    get_nongen_builtins,
-)
+    get_nongen_builtins, )
 from mypy.options import UNPACK, Options
-from mypy.plugin import AnalyzeTypeContext, Plugin, TypeAnalyzerPluginInterface
+from mypy.plugin import AnalyzeTypeContext, Plugin, TypeAnalyzerPluginInterface, AnalyzeRefinementTypeContext
 from mypy.semanal_shared import SemanticAnalyzerCoreInterface, paramspec_args, paramspec_kwargs
+from mypy.subtypes import is_subtype
 from mypy.tvar_scope import TypeVarLikeScope
 from mypy.types import (
     ANNOTATED_TYPE_NAMES,
@@ -91,7 +95,7 @@ from mypy.types import (
 )
 from mypy.typetraverser import TypeTraverserVisitor
 from mypy.typevars import fill_typevars
-from mypy_ext.utils import RefinementTypeBuilder
+from mypy.typing_extension import RefinementTypeWrapper
 
 T = TypeVar("T")
 
@@ -814,6 +818,13 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
                 column=t.column,
             )
 
+        # Option 4: an expression that evaluates to a type wrapper.
+        if len(t.args) == 0 and isinstance(sym.node, Var):
+            raw_expr = ast.Name(t.name, line=t.line, column=t.column)
+            result = self.try_eval_type_wrapper(raw_expr, t)
+            if result:
+                return result
+
         # None of the above options worked. We parse the args (if there are any)
         # to make sure there are no remaining semanal-only types, then give up.
         t = t.copy_modified(args=self.anal_array(t.args))
@@ -1054,7 +1065,7 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
 
     def visit_raw_expression_type(self, t: RawExpressionType) -> Type:
         if t.raw_expr is not None:
-            typ = self.eval_type_function(t)
+            typ = self.try_eval_type_wrapper(t.raw_expr, t)
             if typ:
                 return typ
 
@@ -1090,34 +1101,50 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
 
         return AnyType(TypeOfAny.from_error, line=t.line, column=t.column)
 
-    def eval_type_function(self, t: RawExpressionType) -> Type | None:
-        # collect names
-        def lookup(name: str) -> SymbolTableNode | None:
-            return self.lookup_qualified(name, t)
-
+    def try_eval_type_wrapper(self, expr: ast.expr, ctx: Context) -> Type | None:
         class Resolver(ast.NodeVisitor):
-            def __init__(self):
+            def __init__(self, api: SemanticAnalyzerCoreInterface):
                 self.env: dict[str, Any] = {}
+                self.api = api
 
             def put(self, name: str, fullname: str):
                 parts = fullname.split('.')
-                o = __import__(parts[0])
+                module_name = parts[0]
+                try:
+                    o = importlib.import_module(module_name)
+                except ModuleNotFoundError as exc:
+                    # This is possibly caused by importing a name that is not in the mypy codebase,
+                    # but a source file that the currently checked file depends on.
+                    from mypy.semanal import SemanticAnalyzer
+                    analyzer = cast(SemanticAnalyzer, self.api)
+                    if module_name in analyzer.modules:
+                        cu = analyzer.modules[module_name]
+                        spec = importlib.util.spec_from_file_location(cu.name, cu.path)
+                        module = importlib.util.module_from_spec(spec)
+                        sys.modules[module_name] = module
+                        spec.loader.exec_module(module)
+                        o = module
+                    else:
+                        raise exc
+
                 for x in parts[1:]:
                     o = getattr(o, x)
-
                 self.env[name] = o
 
             def visit_Name(self, node: ast.Name) -> None:
                 if node.id not in self.env:
-                    result = lookup(node.id)
+                    result = self.api.lookup_qualified(node.id, ctx)
                     if result and result.node:
                         self.put(node.id, result.node.fullname)
 
-        resolver = Resolver()
-        resolver.visit(t.raw_expr)
-        v = eval(ast.unparse(t.raw_expr), {}, resolver.env)
-        if isinstance(v, RefinementTypeBuilder):
-            return v.build(self, t.line, t.column)
+        resolver = Resolver(self.api)
+        resolver.visit(expr)
+        v = eval(ast.unparse(expr), {}, resolver.env)
+        if isinstance(v, RefinementTypeWrapper):
+            fullname = '.'.join([v.__module__, v.__class__.__name__])
+            hook = self.plugin.get_refinement_type_analyze_hook(fullname)
+            if hook is not None:
+                return hook(AnalyzeRefinementTypeContext(v, ctx, self))
 
         return None
 

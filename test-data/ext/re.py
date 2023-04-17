@@ -1,29 +1,29 @@
 from typing import Literal
 
-from mypy_ext.regular_type import Re
+from re_types import *
 
 
 def re_cast() -> None:
-    s1: Re["ab"] = "ab"
+    s1: re_lang("ab") = "ab"
     s2: str = s1
     s3: Literal["hello"] = "hello"
-    s4: Re["hello"] = s3
+    s4: re_lang("hello") = s3
     n: int = len(s4)
 
 
-def re_subtype(s: Re["a+"]) -> Re["a*"]:
+def re_subtype(s: re_lang("a+")) -> re_lang("a*"):
     return s
 
 
-def expects_many_a(s: Re["a*"]) -> str:
+def expects_many_a(s: many_a) -> str:
     return s
 
 
-def expects_at_least_one_a(s: Re["a+"]) -> str:
+def expects_at_least_one_a(s: at_least_one_a) -> str:
     return s
 
 
-def expects_a_or_b(s: Re["a|b"]) -> str:
+def expects_a_or_b(s: a_or_b) -> str:
     return s
 
 

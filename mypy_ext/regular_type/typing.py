@@ -1,18 +1,16 @@
 from typing import Sequence
 
-from automata.base.exceptions import InvalidRegexError
 from automata.fa.nfa import NFA
 from automata.regex import regex as re
 
-from mypy.plugin import TypeAnalyzerPluginInterface
 from mypy.types import Instance, JsonDict, LiteralValue, RefinementType, Type, LiteralType
-from mypy_ext.regular_type import Re
-from mypy_ext.utils import fullname_of, type_is, RefinementTypeBuilder
+from mypy_ext.regular_type import re_lang
+from mypy_ext.utils import fullname_of, type_is
 
 
 class RegularType(RefinementType):
-    fullname = fullname_of(Re)
-    name = Re.__name__
+    fullname = fullname_of(re_lang)
+    name = re_lang.__name__
 
     regex: str
 
@@ -53,17 +51,3 @@ class RegularType(RefinementType):
     def deserialize_args(cls, base: Instance, args: JsonDict | str) -> Type:
         assert isinstance(args, str)
         return RegularType(base, args)
-
-
-class RegularTypeBuilder(RefinementTypeBuilder):
-    def __init__(self, regex: str):
-        self.regex = regex
-
-    def build(self, api: TypeAnalyzerPluginInterface, line: int = -1, column: int = -1) -> Type:
-        str_type = api.named_type("builtins.str", [])
-        re.validate(self.regex)
-        return RegularType(str_type, self.regex, line, column)
-
-
-def re_lang(regex: str) -> RefinementTypeBuilder:
-    return RegularTypeBuilder(regex)

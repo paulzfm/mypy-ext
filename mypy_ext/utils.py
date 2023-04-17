@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Type as PyType
+from typing import Type as PyType, Callable
 
 from mypy.plugin import TypeAnalyzerPluginInterface
 from mypy.types import Instance, Type
 
 
-def fullname_of(x: PyType) -> str:
+def fullname_of(x: PyType | Callable) -> str:
     return ".".join([x.__module__, x.__name__])
 
 

@@ -1,9 +1,12 @@
-from typing import Generic, TypeVar
-
-from mypy.typing_extension import Refinable
-
-R = TypeVar("R")
+from mypy.typing_extension import RefinementTypeWrapper
 
 
-class Re(Refinable, Generic[R]):
-    pass
+class RegularTypeWrapper(RefinementTypeWrapper):
+    regex: str
+
+    def __init__(self, regex: str):
+        self.regex = regex
+
+
+def re_lang(regex: str) -> RegularTypeWrapper:
+    return RegularTypeWrapper(regex)
