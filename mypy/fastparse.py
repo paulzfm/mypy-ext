@@ -2036,11 +2036,6 @@ class TypeConverter:
         else:
             params = [self.visit(sliceval)]
 
-        if isinstance(sliceval, ast3.Tuple):
-            original_params = sliceval.elts
-        else:
-            original_params = [cast(ast3.expr, sliceval)]
-
         value = self.visit(n.value)
         if isinstance(value, UnboundType) and not value.args:
             return UnboundType(
@@ -2049,7 +2044,6 @@ class TypeConverter:
                 line=self.line,
                 column=value.column,
                 empty_tuple_index=empty_tuple_index,
-                original_args=original_params,
             )
         else:
             return self.invalid_type(n)

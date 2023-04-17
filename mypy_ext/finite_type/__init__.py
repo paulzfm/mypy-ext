@@ -1,9 +1,12 @@
-from typing import Generic, TypeVar
-
-from mypy.typing_extension import Refinable
-
-N = TypeVar("N")
+from mypy.typing_extension import RefinementTypeWrapper
 
 
-class Fin(Refinable, Generic[N]):
-    pass
+class FiniteTypeWrapper(RefinementTypeWrapper):
+    bound: int
+
+    def __init__(self, bound: int):
+        self.bound = bound
+
+
+def fin(bound: int) -> FiniteTypeWrapper:
+    return FiniteTypeWrapper(bound)

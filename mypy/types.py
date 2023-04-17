@@ -833,32 +833,31 @@ class UnboundType(ProperType):
         "empty_tuple_index",
         "original_str_expr",
         "original_str_fallback",
-        "original_args",
     )
 
-    try:
-        # Check if we can use the stdlib ast module instead of typed_ast.
-        if sys.version_info >= (3, 8):
-            import ast as ast3
-        else:
-            from typed_ast import ast3
-    except ImportError:
-        try:
-            from typed_ast import ast35  # type: ignore[attr-defined]
-        except ImportError:
-            print(
-                "The typed_ast package is not installed.\n"
-                "You can install it with `python3 -m pip install typed-ast`.",
-                file=sys.stderr,
-            )
-        else:
-            print(
-                "You need a more recent version of the typed_ast package.\n"
-                "You can update to the latest version with "
-                "`python3 -m pip install -U typed-ast`.",
-                file=sys.stderr,
-            )
-        sys.exit(1)
+    # try:
+    #     # Check if we can use the stdlib ast module instead of typed_ast.
+    #     if sys.version_info >= (3, 8):
+    #         import ast as ast3
+    #     else:
+    #         from typed_ast import ast3
+    # except ImportError:
+    #     try:
+    #         from typed_ast import ast35  # type: ignore[attr-defined]
+    #     except ImportError:
+    #         print(
+    #             "The typed_ast package is not installed.\n"
+    #             "You can install it with `python3 -m pip install typed-ast`.",
+    #             file=sys.stderr,
+    #         )
+    #     else:
+    #         print(
+    #             "You need a more recent version of the typed_ast package.\n"
+    #             "You can update to the latest version with "
+    #             "`python3 -m pip install -U typed-ast`.",
+    #             file=sys.stderr,
+    #         )
+    #     sys.exit(1)
 
     def __init__(
         self,
@@ -870,13 +869,10 @@ class UnboundType(ProperType):
         empty_tuple_index: bool = False,
         original_str_expr: str | None = None,
         original_str_fallback: str | None = None,
-        original_args: Sequence[ast3.expr] | None = None,
     ) -> None:
         super().__init__(line, column)
         if not args:
             args = []
-        if not original_args:
-            original_args = []
         assert name is not None
         self.name = name
         self.args = tuple(args)
@@ -899,8 +895,6 @@ class UnboundType(ProperType):
         # so we don't have to try and recompute it later
         self.original_str_expr = original_str_expr
         self.original_str_fallback = original_str_fallback
-        # Store the original expression for the convenience of refinement type checking
-        self.original_args = original_args
 
     def copy_modified(self, args: Bogus[Sequence[Type] | None] = _dummy) -> UnboundType:
         if args is _dummy:
@@ -914,7 +908,6 @@ class UnboundType(ProperType):
             empty_tuple_index=self.empty_tuple_index,
             original_str_expr=self.original_str_expr,
             original_str_fallback=self.original_str_fallback,
-            original_args=self.original_args,
         )
 
     def accept(self, visitor: TypeVisitor[T]) -> T:
@@ -2448,9 +2441,9 @@ class TypedDictType(ProperType):
         return (
             frozenset(self.items.keys()) == frozenset(other.items.keys())
             and all(
-                left_item_type == right_item_type
-                for (_, left_item_type, right_item_type) in self.zip(other)
-            )
+            left_item_type == right_item_type
+            for (_, left_item_type, right_item_type) in self.zip(other)
+        )
             and self.fallback == other.fallback
             and self.required_keys == other.required_keys
         )

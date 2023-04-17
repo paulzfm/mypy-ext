@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Sequence, cast
 
 from mypy.types import Instance, JsonDict, LiteralValue, RefinementType, Type
-from mypy_ext.finite_type import Fin
+from mypy_ext.finite_type import fin
 from mypy_ext.utils import fullname_of, type_is
 
 
 class FiniteType(RefinementType):
-    fullname = fullname_of(Fin)
-    name = Fin.__name__
+    fullname = fullname_of(fin)
+    name = fin.__name__
 
     bound: int
 

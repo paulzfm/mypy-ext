@@ -1,37 +1,24 @@
 from __future__ import annotations
 
-from typing import Callable, Tuple
+from typing import Callable, Tuple, cast
 
 from mypy.options import Options
-from mypy.plugin import AnalyzeTypeContext, MethodContext, Plugin
+from mypy.plugin import MethodContext, Plugin, AnalyzeRefinementTypeContext
 from mypy.types import Instance, LiteralType, ProperType, RawExpressionType, Type, UnboundType
-from mypy_ext.finite_type import Fin
+from mypy_ext.finite_type import fin, FiniteTypeWrapper
 from mypy_ext.finite_type.typing import FiniteType
 from mypy_ext.utils import fullname_of
 
 
-def analyze_type(ctx: AnalyzeTypeContext) -> Type:
-    assert isinstance(
-        ctx.type, UnboundType
-    ), f"{ctx.type} of type {ctx.type.__class__.__name__} is not UnboundType"
+def analyze_refinement_type(ctx: AnalyzeRefinementTypeContext) -> Type:
+    wrapper = cast(FiniteTypeWrapper, ctx.wrapper)
     int_type = ctx.api.named_type("builtins.int", [])
 
-    if len(ctx.type.args) != 1:
-        ctx.api.fail("Fin[...] expects one type argument", ctx.type)
-        if len(ctx.type.args) == 0:
-            return int_type
-
-    arg = ctx.type.args[0]
-    if not isinstance(arg, RawExpressionType) or not isinstance(arg.literal_value, int):
-        ctx.api.fail("Argument of Fin[...] must be an integer literal", arg)
+    if wrapper.bound <= 0:
+        ctx.api.fail("Argument of fin(...) must be a positive integer", ctx.context)
         return int_type
 
-    bound = arg.literal_value
-    if bound <= 0:
-        ctx.api.fail("Argument of Fin[...] must be a positive integer", arg)
-        return int_type
-
-    return FiniteType(int_type, bound, ctx.type.line, ctx.type.column)
+    return FiniteType(int_type, wrapper.bound, ctx.context.line, ctx.context.column)
 
 
 IS_CONST = 1
@@ -59,7 +46,7 @@ def check_add(ctx: MethodContext) -> Type:
 
     if k1 == IS_CONST and k2 == IS_CONST:
         return LiteralType(n1 + n2, int_type)
-    if k1 != IS_ERROR and k2 != IS_ERROR:
+    if k1 != IS_ERROR and k2 != IS_ERROR and (k1 == IS_FIN or k2 == IS_FIN):
         return FiniteType(int_type, n1 + n2)
 
     # fallback
@@ -70,9 +57,9 @@ class FinitePlugin(Plugin):
     def __init__(self, options: Options) -> None:
         super().__init__(options)
 
-    def get_type_analyze_hook(self, fullname: str) -> Callable[[AnalyzeTypeContext], Type] | None:
-        if fullname == fullname_of(Fin):
-            return analyze_type
+    def get_refinement_type_analyze_hook(self, fullname: str) -> Callable[[AnalyzeRefinementTypeContext], Type] | None:
+        if fullname == fullname_of(FiniteTypeWrapper):
+            return analyze_refinement_type
 
         return None
 
