@@ -2930,7 +2930,7 @@ class ExpressionChecker(ExpressionVisitor[Type]):
         That is, 'a < b > c == d' is check as 'a < b and b > c and c == d'
         """
         result: Type | None = None
-        sub_result: Type | None = None
+        sub_result: Type
 
         # Check each consecutive operand pair and their operator
         for left, right, operator in zip(e.operands, e.operands[1:], e.operators):
@@ -2955,9 +2955,8 @@ class ExpressionChecker(ExpressionVisitor[Type]):
                 if isinstance(right_type, UnionType):
                     item_types = list(right_type.relevant_items())
 
-                # NOTE: to infer more precise Boolean types (i.e., Literal[True], Literal[False]),
-                # this operator cannot always return `bool`.
-                # sub_result = self.bool_type()
+                # The first guess.
+                sub_result = self.bool_type()
 
                 container_types: list[Type] = []
                 iterable_types: list[Type] = []
@@ -2976,11 +2975,11 @@ class ExpressionChecker(ExpressionVisitor[Type]):
                             context=e,
                             original_type=right_type,
                         )
-                        # Compute the most precise type.
-                        if sub_result is None:
+
+                        # If `result_type` is more precise (a Boolean Literal), then we should refine our first guess.
+                        t = get_proper_type(result_type)
+                        if isinstance(t, LiteralType) and isinstance(t.value, bool):
                             sub_result = result_type
-                        else:
-                            sub_result = join.join_types(sub_result, result_type)
 
                         # Container item type for strict type overlap checks. Note: we need to only
                         # check for nominal type, because a usual "Unsupported operands for in"
@@ -3074,7 +3073,7 @@ class ExpressionChecker(ExpressionVisitor[Type]):
             #  Determine type of boolean-and of result and sub_result
             if result is None:
                 result = sub_result
-            elif sub_result is not None:
+            else:
                 result = join.join_types(result, sub_result)
 
         assert result is not None
