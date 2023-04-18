@@ -1468,10 +1468,10 @@ class RefinementType(ProperType):
         pass
 
     def short_repr(self) -> str:
-        return f"{self.name}[{', '.join(self.args_repr())}]"
+        return f"{self.name}({', '.join(self.args_repr())})"
 
     def long_repr(self) -> str:
-        return f"{self.fullname}[{', '.join(self.args_repr())}]"
+        return f"{self.fullname}({', '.join(self.args_repr())})"
 
     @abstractmethod
     def shallow_copy(self) -> RefinementType:

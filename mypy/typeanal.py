@@ -1115,24 +1115,31 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
         return AnyType(TypeOfAny.from_error, line=t.line, column=t.column)
 
     def try_eval_type_wrapper(self, expr: ast3.expr, ctx: Context) -> Type | None:
+        class AccessCurrentModuleError(Exception):
+            def __init__(self, name: str):
+                self.name = name
+
+            def msg(self) -> str:
+                return f"Name '{self.name}' is not accessible because it is defined in the current module"
+
         class NameResolver(ast3.NodeVisitor):
             def __init__(self, api: SemanticAnalyzerCoreInterface):
                 self.env: dict[str, Any] = {}
-                self.api = api
+                from mypy.semanal import SemanticAnalyzer
+                self.analyzer = cast(SemanticAnalyzer, api)
 
-            def put(self, name: str, fullname: str) -> None:
-                parts = fullname.split(".")
+            def put(self, name: str, qualname: str) -> None:
+                parts = qualname.split(".")
                 module_name = parts[0]
+                if module_name == self.analyzer.cur_mod_node.name:
+                    raise AccessCurrentModuleError(name)
                 try:
                     o = importlib.import_module(module_name)
                 except ModuleNotFoundError as exc:
                     # This is possibly caused by importing a name that is not in the mypy codebase,
                     # but a source file that the currently checked file depends on.
-                    from mypy.semanal import SemanticAnalyzer
-
-                    analyzer = cast(SemanticAnalyzer, self.api)
-                    if module_name in analyzer.modules:
-                        cu = analyzer.modules[module_name]
+                    if module_name in self.analyzer.modules:
+                        cu = self.analyzer.modules[module_name]
                         spec = importlib.util.spec_from_file_location(cu.name, cu.path)
                         assert spec is not None
                         assert spec.loader is not None
@@ -1149,13 +1156,27 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
 
             def visit_Name(self, node: ast3.Name) -> None:
                 if node.id not in self.env:
-                    result = self.api.lookup_qualified(node.id, ctx)
+                    result = self.analyzer.lookup_qualified(node.id, ctx)
                     if result and result.node:
-                        self.put(node.id, result.node.fullname)
+                        # Special case: if the node is an unknown imported symbol, we must enable `logical_deps`
+                        # to correctly fetch its qualified name.
+                        t = result.type
+                        if isinstance(t, AnyType) and t.type_of_any == TypeOfAny.from_unimported_type:
+                            assert self.analyzer.options.logical_deps, \
+                                f"Option 'logical_deps' must be enabled to resolve unknown imported name {node.id}"
+                        self.put(node.id, result.fullname)
 
         resolver = NameResolver(self.api)
-        resolver.visit(expr)
-        v = eval(ast3.unparse(expr), {}, resolver.env)  # type: ignore[attr-defined]
+        try:
+            resolver.visit(expr)
+            v = eval(ast3.unparse(expr), {}, resolver.env)  # type: ignore[attr-defined]
+        except ModuleNotFoundError as exc:
+            self.fail(exc.msg, ctx)
+            return AnyType(TypeOfAny.from_error)
+        except AccessCurrentModuleError as exc:
+            self.fail(exc.msg(), ctx)
+            return AnyType(TypeOfAny.from_error)
+
         if isinstance(v, RefinementTypeWrapper):
             fullname = ".".join([v.__module__, v.__class__.__name__])
             hook = self.plugin.get_refinement_type_analyze_hook(fullname)
